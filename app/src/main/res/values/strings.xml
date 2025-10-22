@@ -1,0 +1,44 @@
+<resources>
+    <string name="app_name">Game Level</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_catalog">Catálogo</string>
+    <string name="nav_cart">Carrito</string>
+    <string name="nav_profile">Perfil</string>
+    <string name="nav_reviews">Reseñas</string>
+    
+    <!-- Common -->
+    <string name="btn_back">Volver</string>
+    <string name="btn_search">Buscar</string>
+    <string name="btn_add_to_cart">Agregar al Carrito</string>
+    <string name="btn_checkout">Proceder al Pago</string>
+    <string name="btn_login">Iniciar Sesión</string>
+    <string name="btn_register">Registrarse</string>
+    <string name="btn_logout">Cerrar Sesión</string>
+    
+    <!-- Home Screen -->
+    <string name="home_welcome">Bienvenido a Game Level</string>
+    <string name="home_subtitle">Tu tienda de videojuegos</string>
+    <string name="home_view_catalog">Ver Catálogo</string>
+    <string name="home_view_reviews">Ver Reseñas</string>
+    
+    <!-- Product -->
+    <string name="product_in_stock">En Stock</string>
+    <string name="product_out_of_stock">Sin Stock</string>
+    <string name="product_price">Precio</string>
+    <string name="product_quantity">Cantidad</string>
+    
+    <!-- Cart -->
+    <string name="cart_empty">Tu carrito está vacío</string>
+    <string name="cart_total">Total</string>
+    
+    <!-- Error Messages -->
+    <string name="error_connection">Error de conexión</string>
+    <string name="error_login">Error al iniciar sesión</string>
+    <string name="error_loading">Error al cargar datos</string>
+    
+    <!-- Success Messages -->
+    <string name="success_added_to_cart">Producto agregado al carrito</string>
+    <string name="success_order_created">Pedido creado exitosamente</string>
+</resources>
