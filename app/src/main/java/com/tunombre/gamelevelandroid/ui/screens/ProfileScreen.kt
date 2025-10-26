@@ -78,7 +78,8 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.secondary)
                 ) {
                     Column(
                         modifier = Modifier.padding(24.dp),
@@ -146,7 +147,8 @@ fun ProfileScreen(
                 
                 Card(
                     onClick = { navController.navigate(Screen.Reviews.route) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
                 ) {
                     Row(
                         modifier = Modifier
@@ -196,7 +198,8 @@ fun ProfileInfoItem(
     value: String
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
     ) {
         Row(
             modifier = Modifier

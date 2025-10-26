@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -21,6 +22,8 @@ import com.tunombre.gamelevelandroid.data.model.Product
 import com.tunombre.gamelevelandroid.data.local.SampleProducts
 import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
+import com.tunombre.gamelevelandroid.utils.ImageLoader
+import kotlin.coroutines.jvm.internal.CompletedContinuation.context
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +31,7 @@ fun CatalogScreen(
     navController: NavController,
     viewModel: GameLevelViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val products by viewModel.products.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
@@ -180,7 +184,8 @@ fun ProductCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick),
+        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
     ) {
         Row(
             modifier = Modifier
@@ -189,7 +194,8 @@ fun ProductCard(
         ) {
             // Imagen del producto
             Card(
-                modifier = Modifier.size(100.dp)
+                modifier = Modifier.size(100.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -197,7 +203,11 @@ fun ProductCard(
                 ) {
                     if (product.imagen.isNotBlank()) {
                         AsyncImage(
-                            model = product.imagen,
+                            model = if (ImageLoader.isLocalImage(product.imagen)) {
+                                ImageLoader.getDrawableResourceId(context, product.imagen)
+                            } else {
+                                product.imagen
+                            },
                             contentDescription = product.nombre,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop

@@ -9,6 +9,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -17,6 +19,7 @@ import coil.compose.AsyncImage
 import com.tunombre.gamelevelandroid.data.model.CartItem
 import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
+import com.tunombre.gamelevelandroid.utils.ImageLoader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +27,7 @@ fun CartScreen(
     navController: NavController,
     viewModel: GameLevelViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val cartItems by viewModel.cartItems.collectAsState()
     val cartTotal by viewModel.cartTotal.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
@@ -157,8 +161,10 @@ fun CartItemCard(
     item: CartItem,
     onRemove: () -> Unit
 ) {
+    val context = LocalContext.current
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
     ) {
         Row(
             modifier = Modifier
@@ -167,7 +173,8 @@ fun CartItemCard(
         ) {
             // Imagen del producto
             Card(
-                modifier = Modifier.size(80.dp)
+                modifier = Modifier.size(80.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -175,9 +182,14 @@ fun CartItemCard(
                 ) {
                     if (item.product.imagen.isNotBlank()) {
                         AsyncImage(
-                            model = item.product.imagen,
+                            model = if (ImageLoader.isLocalImage(item.product.imagen)) {
+                                ImageLoader.getDrawableResourceId(context, item.product.imagen)
+                            } else {
+                                item.product.imagen
+                            },
                             contentDescription = item.product.nombre,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
                     } else {
                         Icon(

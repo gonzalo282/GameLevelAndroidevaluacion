@@ -79,7 +79,8 @@ fun ReviewsScreen(
 @Composable
 fun ProductReviewCard(productName: String, productId: Int) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)

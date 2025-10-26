@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -17,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
+import com.tunombre.gamelevelandroid.utils.ImageLoader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +27,7 @@ fun ProductDetailScreen(
     productId: Int,
     viewModel: GameLevelViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val product by viewModel.selectedProduct.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     var quantity by remember { mutableStateOf(1) }
@@ -70,7 +73,8 @@ fun ProductDetailScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp)
+                        .height(300.dp),
+                    border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.secondary)
                 ) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -78,7 +82,11 @@ fun ProductDetailScreen(
                     ) {
                         if (currentProduct.imagen.isNotBlank()) {
                             AsyncImage(
-                                model = currentProduct.imagen,
+                                model = if (ImageLoader.isLocalImage(currentProduct.imagen)) {
+                                    ImageLoader.getDrawableResourceId(context, currentProduct.imagen)
+                                } else {
+                                    currentProduct.imagen
+                                },
                                 contentDescription = currentProduct.nombre,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop

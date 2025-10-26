@@ -51,7 +51,8 @@ fun HomeScreen(navController: NavController) {
                     .height(200.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                ),
+                border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -125,7 +126,8 @@ fun HomeScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                ),
+                border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
@@ -227,7 +229,8 @@ fun CategoryCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.height(100.dp)
+        modifier = modifier.height(100.dp),
+        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
     ) {
         Column(
             modifier = Modifier
@@ -239,7 +242,8 @@ fun CategoryCard(
             Icon(
                 icon,
                 contentDescription = null,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(32.dp),
+                tint = MaterialTheme.colorScheme.secondary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(

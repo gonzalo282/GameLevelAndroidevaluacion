@@ -71,7 +71,8 @@ fun PaymentResultScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                ),
+                border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)

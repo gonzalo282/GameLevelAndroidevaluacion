@@ -4,22 +4,24 @@ import com.tunombre.gamelevelandroid.data.model.Product
 
 object SampleProducts {
     
-    // URLs de imágenes de productos (puedes reemplazarlas con las tuyas)
-    private const val HOODIE_GAMER = "https://i.imgur.com/hoodie_gamer.jpg"
-    private const val SILLA_RAZER = "https://i.imgur.com/silla_razer.jpg"
-    private const val CONTROLLER_MASK = "https://i.imgur.com/controller_mask.jpg"
-    private const val TECLADO_RGB = "https://i.imgur.com/teclado_rgb.jpg"
-    private const val HEADSET_HYPERX = "https://i.imgur.com/headset_hyperx.jpg"
-    private const val CATAN_BOARD = "https://i.imgur.com/catan_board.jpg"
-    private const val PC_GAMING_SETUP = "https://i.imgur.com/pc_gaming_setup.jpg"
-    private const val CONSOLAS = "https://i.imgur.com/consolas.jpg"
-    private const val JUEGOS_POPULARES = "https://i.imgur.com/juegos_populares.jpg"
-    private const val MOUSE_LOGITECH = "https://i.imgur.com/mouse_logitech.jpg"
-    private const val MOUSE_RAZER = "https://i.imgur.com/mouse_razer.jpg"
-    private const val MOUSEPAD_RGB = "https://i.imgur.com/mousepad_rgb.jpg"
-    private const val PS5_CONSOLE = "https://i.imgur.com/ps5_console.jpg"
-    private const val CAMISETA_RETRO = "https://i.imgur.com/camiseta_retro.jpg"
-    private const val HOODIE_GAMING = "https://i.imgur.com/hoodie_gaming.jpg"
+    // Imágenes locales desde res/drawable/
+    // Las imágenes se cargan directamente desde la carpeta drawable
+    
+    private const val HOODIE_GAMER = "drawable/poleras.jpg"
+    private const val SILLA_RAZER = "drawable/silla.jpg"
+    private const val CONTROLLER_MASK = "drawable/accesorios.jpg"
+    private const val TECLADO_RGB = "drawable/test.jpg"
+    private const val HEADSET_HYPERX = "drawable/audifonos.jpg"
+    private const val CATAN_BOARD = "drawable/catan.jpg"
+    private const val PC_GAMING_SETUP = "drawable/computador.webp"
+    private const val CONSOLAS = "drawable/consolas.png"
+    private const val JUEGOS_POPULARES = "drawable/juegos.jpeg"
+    private const val MOUSE_LOGITECH = "drawable/logitec.jpg"
+    private const val MOUSE_RAZER = "drawable/mouse.jpg"
+    private const val MOUSEPAD_RGB = "drawable/mousepad.jpg"
+    private const val PS5_CONSOLE = "drawable/play5.png"
+    private const val CAMISETA_RETRO = "drawable/poleras.jpg"
+    private const val HOODIE_GAMING = "drawable/polerones.jpg"
     
     val sampleProducts = listOf(
         // Ropa y Accesorios Gaming

@@ -170,7 +170,8 @@ fun RegisterScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.error)
                 ) {
                     Text(
                         errorMessage!!,
