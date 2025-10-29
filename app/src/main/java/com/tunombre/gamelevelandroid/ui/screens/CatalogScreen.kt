@@ -1,5 +1,7 @@
 package com.tunombre.gamelevelandroid.ui.screens
 
+// Importaciones (Asegúrate de que androidx.compose.material3.SnackbarHostState esté)
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,7 +25,7 @@ import com.tunombre.gamelevelandroid.data.local.SampleProducts
 import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
 import com.tunombre.gamelevelandroid.utils.ImageLoader
-import kotlin.coroutines.jvm.internal.CompletedContinuation.context
+// NO importes más el 'context' de corrutinas
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,16 +33,21 @@ fun CatalogScreen(
     navController: NavController,
     viewModel: GameLevelViewModel = viewModel()
 ) {
-    val context = LocalContext.current
+    // val context = LocalContext.current // Ya no es necesario aquí, se movió a ProductCard
     val products by viewModel.products.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
-    
+
+    // --- CÓDIGO (1/3): Para el Snackbar ---
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    // -------------------------------------------
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Todos") }
-    
+
     val categories = SampleProducts.categories
-    
+
     val filteredProducts = remember(products, searchQuery, selectedCategory) {
         var result = products
         if (selectedCategory != "Todos") {
@@ -49,16 +56,35 @@ fun CatalogScreen(
         if (searchQuery.isNotBlank()) {
             result = result.filter {
                 it.nombre.contains(searchQuery, ignoreCase = true) ||
-                it.descripcion.contains(searchQuery, ignoreCase = true)
+                        it.descripcion.contains(searchQuery, ignoreCase = true)
             }
         }
         result
     }
-    
+
     LaunchedEffect(Unit) {
+        // --- CÓDIGO NUEVO AÑADIDO (Paso 1.3) ---
+        // ¡Llamamos a la simulación de login!
+        // Esto "inicia sesión" automáticamente al abrir la pantalla.
+        viewModel.simularLogin()
+        // ------------------------------------------
+
+        // Esto ya existía y carga los productos
         viewModel.loadProducts()
     }
-    
+
+    // --- CÓDIGO (2/3): Efecto para mostrar el Snackbar ---
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            snackbarHostState.showSnackbar(
+                message = errorMessage!!,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearError() // Limpiamos el error para que no se muestre de nuevo
+        }
+    }
+    // -----------------------------------------------------
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -83,7 +109,10 @@ fun CatalogScreen(
                     }
                 }
             )
-        }
+        },
+        // --- CÓDIGO (3/3): Añadir el SnackbarHost al Scaffold ---
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        // --------------------------------------------------------
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -108,7 +137,7 @@ fun CatalogScreen(
                 },
                 singleLine = true
             )
-            
+
             // Filtro de categorías
             ScrollableTabRow(
                 selectedTabIndex = categories.indexOf(selectedCategory),
@@ -123,7 +152,7 @@ fun CatalogScreen(
                     )
                 }
             }
-            
+
             // Lista de productos
             if (isLoading) {
                 Box(
@@ -165,6 +194,7 @@ fun CatalogScreen(
                                 navController.navigate(Screen.ProductDetail.createRoute(product.id))
                             },
                             onAddToCart = {
+                                // Esta llamada ahora SÍ debería funcionar
                                 viewModel.addToCart(product)
                             }
                         )
@@ -181,6 +211,9 @@ fun ProductCard(
     onClick: () -> Unit,
     onAddToCart: () -> Unit
 ) {
+    // El 'context' se define aquí, donde se necesita
+    val context: Context = LocalContext.current
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -222,9 +255,9 @@ fun ProductCard(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(12.dp))
-            
+
             // Información del producto
             Column(
                 modifier = Modifier.weight(1f)
@@ -234,23 +267,23 @@ fun ProductCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 Text(
                     product.categoria,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 Text(
                     product.descripcion,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 2
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -276,9 +309,9 @@ fun ProductCard(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Button(
                     onClick = onAddToCart,
                     modifier = Modifier.fillMaxWidth(),
