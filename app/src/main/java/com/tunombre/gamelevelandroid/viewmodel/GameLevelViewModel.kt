@@ -15,16 +15,8 @@ import kotlinx.coroutines.launch
 
 class GameLevelViewModel : ViewModel() {
 
-    // Nos referimos al 'object' (Singleton)
     private val repository = GameLevelRepository
     private var useSampleData = false
-
-    // --- ¡¡¡BLOQUE init ELIMINADO!!! ---
-    // Ya no queremos iniciar sesión automáticamente.
-    // init {
-    //     simularLogin()
-    // }
-    // ---------------------------------
 
     // User State
     private val _currentUser = MutableStateFlow<User?>(null)
@@ -38,9 +30,15 @@ class GameLevelViewModel : ViewModel() {
     val products: StateFlow<List<Product>> = _products.asStateFlow()
 
     private val _selectedProduct = MutableStateFlow<Product?>(null)
+    // --- ¡¡¡AQUÍ ESTÁ EL ARREGLO DEL TYPO!!! ---
     val selectedProduct: StateFlow<Product?> = _selectedProduct.asStateFlow()
+    // ------------------------------------------
 
-    // --- SECCIÓN DEL CARRITO ---
+    // Lógica de Categoría (para HomeScreen)
+    private val _selectedCategory = MutableStateFlow("Todos")
+    val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
+
+    // SECCIÓN DEL CARRITO
     val cartItems: StateFlow<List<CartItem>> = repository.getCartFlow()
         .stateIn(
             scope = viewModelScope,
@@ -55,17 +53,12 @@ class GameLevelViewModel : ViewModel() {
         started = SharingStarted.Eagerly,
         initialValue = 0.0
     )
-    // ----------------------------------------
 
-    // Reviews State
+    // El resto de tus variables de estado
     private val _reviews = MutableStateFlow<List<Review>>(emptyList())
     val reviews: StateFlow<List<Review>> = _reviews.asStateFlow()
-
-    // Loading State
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    // Error State
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
@@ -105,14 +98,12 @@ class GameLevelViewModel : ViewModel() {
             _isLoading.value = true
             _errorMessage.value = null
 
-            // El repositorio ya simula un registro exitoso
             val result = repository.register(nombre, email, password, telefono, direccion)
             result.onSuccess { response ->
                 if (response.success) {
-                    // Inicia la sesión del usuario con los datos simulados
                     _currentUser.value = response.user
                     _authToken.value = response.token
-                    onSuccess() // Navega a la siguiente pantalla
+                    onSuccess()
                 } else {
                     _errorMessage.value = response.message
                 }
@@ -124,15 +115,13 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
-    // --- ¡¡¡FUNCIÓN logout MODIFICADA!!! ---
     fun logout() {
         _currentUser.value = null
         _authToken.value = null
-        repository.clearLocalCart() // ¡También vaciamos el carrito!
+        repository.clearLocalCart()
     }
-    // --------------------------------------
 
-    // --- Función de Simulación (Ahora 'private' y no se usa en init) ---
+    // --- Función de Simulación (Guardada para el futuro, pero no se usa en init) ---
     private fun simularLogin() {
         val usuarioSimulado = User(
             id = 99,
@@ -146,9 +135,7 @@ class GameLevelViewModel : ViewModel() {
         _currentUser.value = usuarioSimulado
         _authToken.value = tokenSimulado
     }
-    // ------------------------------------------
 
-    // ... (El resto de tus funciones: loadProducts, addToCart, etc. van aquí) ...
     // Products Methods
     fun loadProducts() {
         viewModelScope.launch {
@@ -166,6 +153,10 @@ class GameLevelViewModel : ViewModel() {
 
             _isLoading.value = false
         }
+    }
+
+    fun setCategoryFilter(category: String) {
+        _selectedCategory.value = category
     }
 
     fun loadProduct(productId: Int) {
@@ -203,7 +194,6 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
-    // --- SECCIÓN DEL CARRITO ---
     fun loadCart() {
         // ... vacío a propósito
     }
@@ -257,7 +247,6 @@ class GameLevelViewModel : ViewModel() {
         // Obsoleto.
     }
 
-    // Reviews Methods
     fun loadProductReviews(productId: Int) {
         viewModelScope.launch {
             val result = repository.getProductReviews(productId)
@@ -285,8 +274,6 @@ class GameLevelViewModel : ViewModel() {
             }
         }
     }
-
-
 
     fun clearError() {
         _errorMessage.value = null
