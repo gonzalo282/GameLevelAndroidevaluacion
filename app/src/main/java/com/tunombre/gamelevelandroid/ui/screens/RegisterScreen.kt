@@ -24,8 +24,7 @@ import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
 @Composable
 fun RegisterScreen(
     navController: NavController,
-    viewModel: GameLevelViewModel = viewModel()
-) {
+    viewModel: GameLevelViewModel) {
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

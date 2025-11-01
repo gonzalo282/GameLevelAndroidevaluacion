@@ -34,8 +34,7 @@ import com.tunombre.gamelevelandroid.utils.ImageLoader
 @Composable
 fun CartScreen(
     navController: NavController,
-    viewModel: GameLevelViewModel = viewModel()
-) {
+    viewModel: GameLevelViewModel) {
     // val context = LocalContext.current // Eliminado. Advertencia de "Unused variable".
 
     val cartItems by viewModel.cartItems.collectAsState()

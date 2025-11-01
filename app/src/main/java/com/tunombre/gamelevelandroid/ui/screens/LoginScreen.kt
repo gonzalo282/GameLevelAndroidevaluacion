@@ -24,8 +24,7 @@ import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
 @Composable
 fun LoginScreen(
     navController: NavController,
-    viewModel: GameLevelViewModel = viewModel()
-) {
+    viewModel: GameLevelViewModel) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }

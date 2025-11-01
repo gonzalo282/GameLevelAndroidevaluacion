@@ -20,8 +20,7 @@ import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    viewModel: GameLevelViewModel = viewModel()
-) {
+    viewModel: GameLevelViewModel) {
     val currentUser by viewModel.currentUser.collectAsState()
     
     Scaffold(

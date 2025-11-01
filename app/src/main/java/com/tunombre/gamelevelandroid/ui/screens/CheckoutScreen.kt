@@ -20,8 +20,7 @@ import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
 @Composable
 fun CheckoutScreen(
     navController: NavController,
-    viewModel: GameLevelViewModel = viewModel()
-) {
+    viewModel: GameLevelViewModel) {
     val currentUser by viewModel.currentUser.collectAsState()
     val cartItems by viewModel.cartItems.collectAsState()
     val cartTotal by viewModel.cartTotal.collectAsState()

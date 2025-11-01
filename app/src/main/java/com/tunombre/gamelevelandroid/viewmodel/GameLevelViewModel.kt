@@ -19,6 +19,13 @@ class GameLevelViewModel : ViewModel() {
     private val repository = GameLevelRepository
     private var useSampleData = false
 
+    // --- ¡¡¡BLOQUE init ELIMINADO!!! ---
+    // Ya no queremos iniciar sesión automáticamente.
+    // init {
+    //     simularLogin()
+    // }
+    // ---------------------------------
+
     // User State
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
@@ -63,14 +70,6 @@ class GameLevelViewModel : ViewModel() {
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
 
-    // --- ¡¡¡BLOQUE init MOVIDO AQUÍ!!! ---
-    // Ahora se ejecuta DESPUÉS de que _currentUser y _authToken existan.
-    init {
-        // Simula el login tan pronto como el ViewModel se crea.
-        simularLogin()
-    }
-    // ------------------------------------
-
     // Auth Methods
     fun login(email: String, password: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
@@ -106,12 +105,14 @@ class GameLevelViewModel : ViewModel() {
             _isLoading.value = true
             _errorMessage.value = null
 
+            // El repositorio ya simula un registro exitoso
             val result = repository.register(nombre, email, password, telefono, direccion)
             result.onSuccess { response ->
                 if (response.success) {
+                    // Inicia la sesión del usuario con los datos simulados
                     _currentUser.value = response.user
                     _authToken.value = response.token
-                    onSuccess()
+                    onSuccess() // Navega a la siguiente pantalla
                 } else {
                     _errorMessage.value = response.message
                 }
@@ -123,13 +124,16 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
+    // --- ¡¡¡FUNCIÓN logout MODIFICADA!!! ---
     fun logout() {
         _currentUser.value = null
         _authToken.value = null
+        repository.clearLocalCart() // ¡También vaciamos el carrito!
     }
+    // --------------------------------------
 
-    // --- Función de Simulación ---
-    private fun simularLogin() { // <-- La he hecho 'private'
+    // --- Función de Simulación (Ahora 'private' y no se usa en init) ---
+    private fun simularLogin() {
         val usuarioSimulado = User(
             id = 99,
             nombre = "Usuario de Prueba",
@@ -139,11 +143,12 @@ class GameLevelViewModel : ViewModel() {
         )
         val tokenSimulado = "token_falso_para_pruebas_123456789"
 
-        _currentUser.value = usuarioSimulado // Esta línea (la 143) ya no será nula
+        _currentUser.value = usuarioSimulado
         _authToken.value = tokenSimulado
     }
     // ------------------------------------------
 
+    // ... (El resto de tus funciones: loadProducts, addToCart, etc. van aquí) ...
     // Products Methods
     fun loadProducts() {
         viewModelScope.launch {
@@ -280,6 +285,8 @@ class GameLevelViewModel : ViewModel() {
             }
         }
     }
+
+
 
     fun clearError() {
         _errorMessage.value = null

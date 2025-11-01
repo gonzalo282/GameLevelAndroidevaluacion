@@ -20,8 +20,7 @@ import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
 @Composable
 fun ReviewsScreen(
     navController: NavController,
-    viewModel: GameLevelViewModel = viewModel()
-) {
+    viewModel: GameLevelViewModel) {
     val reviews by viewModel.reviews.collectAsState()
     val products by viewModel.products.collectAsState()
     

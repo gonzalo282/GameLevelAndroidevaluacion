@@ -25,8 +25,7 @@ import com.tunombre.gamelevelandroid.utils.ImageLoader
 fun ProductDetailScreen(
     navController: NavController,
     productId: Int,
-    viewModel: GameLevelViewModel = viewModel()
-) {
+    viewModel: GameLevelViewModel) {
     val context = LocalContext.current
     val product by viewModel.selectedProduct.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()

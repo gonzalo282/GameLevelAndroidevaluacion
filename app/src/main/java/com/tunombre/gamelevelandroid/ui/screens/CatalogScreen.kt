@@ -39,8 +39,7 @@ fun CatalogScreen(
     navController: NavController,
     // --- ¡¡¡AQUÍ ESTÁ EL ARREGLO PRINCIPAL!!! ---
     // Era GameLevelViewModel (con L mayúscula)
-    viewModel: GameLevelViewModel = viewModel()
-) {
+    viewModel: GameLevelViewModel) {
     // --------------------------------------------
 
     val products by viewModel.products.collectAsState()
