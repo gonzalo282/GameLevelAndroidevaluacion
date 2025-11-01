@@ -1,16 +1,17 @@
 package com.tunombre.gamelevelandroid.ui.screens
 
-// --- ¡¡¡IMPORTACIONES AÑADIDAS EXPLÍCITAMENTE!!! ---
+// --- ¡¡¡IMPORTACIONES AÑADIDAS!!! ---
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add // <--- ESTA ES LA LÍNEA
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Remove // <--- ESTA ES LA LÍNEA
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import java.util.Locale
-// --------------------------------------------------
+import androidx.compose.foundation.BorderStroke // <-- Asegúrate de tener esta
+import androidx.compose.foundation.layout.* // <-- ¡Esta es la importación clave!
+// ------------------------------------
 
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -34,8 +35,9 @@ import com.tunombre.gamelevelandroid.utils.ImageLoader
 @Composable
 fun CartScreen(
     navController: NavController,
-    viewModel: GameLevelViewModel) {
-    // val context = LocalContext.current // Eliminado. Advertencia de "Unused variable".
+    viewModel: GameLevelViewModel // Recibe el ViewModel compartido
+) {
+    // val context = LocalContext.current // No se usa aquí
 
     val cartItems by viewModel.cartItems.collectAsState()
     val cartTotal by viewModel.cartTotal.collectAsState()
@@ -59,7 +61,12 @@ fun CartScreen(
         bottomBar = {
             if (cartItems.isNotEmpty()) {
                 Surface(
-                    tonalElevation = 3.dp
+                    tonalElevation = 3.dp,
+                    // --- ¡¡¡AQUÍ ESTÁ EL ARREGLO!!! ---
+                    // Este modificador añade automáticamente un padding en la
+                    // parte inferior igual al alto de la barra de navegación.
+                    modifier = Modifier.navigationBarsPadding()
+                    // ------------------------------------
                 ) {
                     Column(
                         modifier = Modifier
@@ -178,7 +185,7 @@ fun CartItemCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
     ) {
         Row(
             modifier = Modifier
@@ -188,7 +195,7 @@ fun CartItemCard(
             // Imagen del producto
             Card(
                 modifier = Modifier.size(80.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -254,15 +261,13 @@ fun CartItemCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        // Botón de Restar (-)
                         OutlinedIconButton(
                             onClick = onDecrement,
                             modifier = Modifier.size(32.dp)
                         ) {
-                            Icon(Icons.Filled.Remove, "Quitar uno") // <-- Ahora debería funcionar
+                            Icon(Icons.Filled.Remove, "Quitar uno")
                         }
 
-                        // Texto de Cantidad
                         Text(
                             "${item.quantity}",
                             style = MaterialTheme.typography.titleMedium,
@@ -270,16 +275,14 @@ fun CartItemCard(
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )
 
-                        // Botón de Sumar (+)
                         OutlinedIconButton(
                             onClick = onIncrement,
                             modifier = Modifier.size(32.dp)
                         ) {
-                            Icon(Icons.Filled.Add, "Añadir uno") // <-- Ahora debería funcionar
+                            Icon(Icons.Filled.Add, "Añadir uno")
                         }
                     }
 
-                    // Botón de Eliminar (basura)
                     IconButton(onClick = onRemove) {
                         Icon(
                             Icons.Filled.Delete,
