@@ -1,5 +1,7 @@
 package com.tunombre.gamelevelandroid.ui.screens
 
+// --- ¡¡¡LISTA COMPLETA DE IMPORTACIONES!!! ---
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,17 +12,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.tunombre.gamelevelandroid.R
 import com.tunombre.gamelevelandroid.navigation.Screen
+import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
+// ---------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(
+    navController: NavController,
+    viewModel: GameLevelViewModel // Aceptamos el ViewModel
+) {
+    val currentUser by viewModel.currentUser.collectAsState()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -29,7 +40,13 @@ fun HomeScreen(navController: NavController) {
                     IconButton(onClick = { navController.navigate(Screen.Cart.route) }) {
                         Icon(Icons.Default.ShoppingCart, "Carrito")
                     }
-                    IconButton(onClick = { navController.navigate(Screen.Profile.route) }) {
+                    IconButton(onClick = {
+                        if (currentUser != null) {
+                            navController.navigate(Screen.Profile.route)
+                        } else {
+                            navController.navigate(Screen.Login.route)
+                        }
+                    }) {
                         Icon(Icons.Default.Person, "Perfil")
                     }
                 }
@@ -52,7 +69,7 @@ fun HomeScreen(navController: NavController) {
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
-                border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.secondary)
+                border = BorderStroke(3.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -78,12 +95,15 @@ fun HomeScreen(navController: NavController) {
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Botones principales
             Button(
-                onClick = { navController.navigate(Screen.Catalog.route) },
+                onClick = {
+                    viewModel.setCategoryFilter("Todos") // Resetea el filtro
+                    navController.navigate(Screen.Catalog.route)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
@@ -92,9 +112,9 @@ fun HomeScreen(navController: NavController) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Ver Catálogo", style = MaterialTheme.typography.titleMedium)
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             OutlinedButton(
                 onClick = { navController.navigate(Screen.Reviews.route) },
                 modifier = Modifier
@@ -105,29 +125,30 @@ fun HomeScreen(navController: NavController) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Ver Reseñas", style = MaterialTheme.typography.titleMedium)
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             // Sección de categorías
             Text(
                 "Categorías Populares",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            CategoryGrid(navController)
-            
+
+            // Pasamos el ViewModel al Grid
+            CategoryGrid(navController, viewModel)
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             // Sección de información
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
-                border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+                border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
@@ -138,7 +159,7 @@ fun HomeScreen(navController: NavController) {
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     FeatureItem(
                         icon = Icons.Default.Check,
                         text = "Amplio catálogo de juegos"
@@ -162,7 +183,10 @@ fun HomeScreen(navController: NavController) {
 }
 
 @Composable
-fun CategoryGrid(navController: NavController) {
+fun CategoryGrid(
+    navController: NavController,
+    viewModel: GameLevelViewModel // Acepta el ViewModel
+) {
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -172,13 +196,19 @@ fun CategoryGrid(navController: NavController) {
                 title = "Periféricos",
                 icon = Icons.Default.Star,
                 modifier = Modifier.weight(1f),
-                onClick = { navController.navigate(Screen.Catalog.route) }
+                onClick = {
+                    viewModel.setCategoryFilter("Periféricos")
+                    navController.navigate(Screen.Catalog.route)
+                }
             )
             CategoryCard(
                 title = "Consolas",
                 icon = Icons.Default.Favorite,
                 modifier = Modifier.weight(1f),
-                onClick = { navController.navigate(Screen.Catalog.route) }
+                onClick = {
+                    viewModel.setCategoryFilter("Consolas")
+                    navController.navigate(Screen.Catalog.route)
+                }
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -190,13 +220,19 @@ fun CategoryGrid(navController: NavController) {
                 title = "PC Gaming",
                 icon = Icons.Default.Star,
                 modifier = Modifier.weight(1f),
-                onClick = { navController.navigate(Screen.Catalog.route) }
+                onClick = {
+                    viewModel.setCategoryFilter("PC Gaming")
+                    navController.navigate(Screen.Catalog.route)
+                }
             )
             CategoryCard(
                 title = "Audio",
                 icon = Icons.Default.Star,
                 modifier = Modifier.weight(1f),
-                onClick = { navController.navigate(Screen.Catalog.route) }
+                onClick = {
+                    viewModel.setCategoryFilter("Audio")
+                    navController.navigate(Screen.Catalog.route)
+                }
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -208,13 +244,19 @@ fun CategoryGrid(navController: NavController) {
                 title = "Ropa",
                 icon = Icons.Default.Star,
                 modifier = Modifier.weight(1f),
-                onClick = { navController.navigate(Screen.Catalog.route) }
+                onClick = {
+                    viewModel.setCategoryFilter("Ropa")
+                    navController.navigate(Screen.Catalog.route)
+                }
             )
             CategoryCard(
                 title = "Juegos",
                 icon = Icons.Default.Star,
                 modifier = Modifier.weight(1f),
-                onClick = { navController.navigate(Screen.Catalog.route) }
+                onClick = {
+                    viewModel.setCategoryFilter("Juegos")
+                    navController.navigate(Screen.Catalog.route)
+                }
             )
         }
     }
@@ -223,14 +265,14 @@ fun CategoryGrid(navController: NavController) {
 @Composable
 fun CategoryCard(
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Card(
         onClick = onClick,
         modifier = modifier.height(100.dp),
-        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
     ) {
         Column(
             modifier = Modifier
@@ -256,7 +298,7 @@ fun CategoryCard(
 
 @Composable
 fun FeatureItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     text: String
 ) {
     Row(

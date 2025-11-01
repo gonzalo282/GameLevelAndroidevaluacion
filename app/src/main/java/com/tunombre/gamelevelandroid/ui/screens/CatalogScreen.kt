@@ -1,6 +1,6 @@
 package com.tunombre.gamelevelandroid.ui.screens
 
-// --- Importaciones Requeridas ---
+// --- ¡¡¡LISTA COMPLETA DE IMPORTACIONES!!! ---
 import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,40 +19,37 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.tunombre.gamelevelandroid.data.model.Product
 import com.tunombre.gamelevelandroid.data.local.SampleProducts
+import com.tunombre.gamelevelandroid.data.model.Product
 import com.tunombre.gamelevelandroid.navigation.Screen
-import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel // <-- IMPORTACIÓN CORRECTA
 import com.tunombre.gamelevelandroid.utils.ImageLoader
-// ---------------------------------
+import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
+// ---------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogScreen(
     navController: NavController,
-    // --- ¡¡¡AQUÍ ESTÁ EL ARREGLO PRINCIPAL!!! ---
-    // Era GameLevelViewModel (con L mayúscula)
-    viewModel: GameLevelViewModel) {
-    // --------------------------------------------
-
+    viewModel: GameLevelViewModel // Recibe el ViewModel compartido
+) {
     val products by viewModel.products.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
 
-    // --- Lógica del Snackbar ---
     val errorMessage by viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    // ---------------------------
 
     var searchQuery by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("Todos") }
+
+    // Leemos la categoría desde el ViewModel
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
 
     val categories = SampleProducts.categories
 
@@ -70,24 +67,19 @@ fun CatalogScreen(
         result
     }
 
-    // Carga los productos al entrar.
-    // (La simulación de login ahora vive en el 'init' del ViewModel)
     LaunchedEffect(Unit) {
         viewModel.loadProducts()
     }
-    // ---------------------------------
 
-    // Efecto para mostrar el Snackbar
     LaunchedEffect(errorMessage) {
         if (errorMessage != null) {
             snackbarHostState.showSnackbar(
                 message = errorMessage!!,
                 duration = SnackbarDuration.Short
             )
-            viewModel.clearError() // Limpiamos el error
+            viewModel.clearError()
         }
     }
-    // ---------------------------------
 
     Scaffold(
         topBar = {
@@ -114,9 +106,7 @@ fun CatalogScreen(
                 }
             )
         },
-        // Añadir el SnackbarHost al Scaffold
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-        // ---------------------------------
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -151,7 +141,8 @@ fun CatalogScreen(
                 categories.forEach { category ->
                     Tab(
                         selected = selectedCategory == category,
-                        onClick = { selectedCategory = category },
+                        // Al hacer clic, actualizamos el ViewModel
+                        onClick = { viewModel.setCategoryFilter(category) },
                         text = { Text(category) }
                     )
                 }
@@ -180,7 +171,7 @@ fun CatalogScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             "No se encontraron productos",
-                            style = MaterialTheme. typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -195,14 +186,13 @@ fun CatalogScreen(
                         ProductCard(
                             product = product,
                             onClick = {
+                                // Reseteamos el filtro al ver un detalle
+                                viewModel.setCategoryFilter("Todos")
                                 navController.navigate(Screen.ProductDetail.createRoute(product.id))
                             },
-                            // --- ¡¡¡AQUÍ ESTÁ EL ARREGLO N°2!!! ---
-                            // Le pasamos el objeto 'product' completo, no solo 'product.id'
                             onAddToCart = {
                                 viewModel.addToCart(product)
                             }
-                            // ----------------------------------
                         )
                     }
                 }
@@ -217,7 +207,6 @@ fun ProductCard(
     onClick: () -> Unit,
     onAddToCart: () -> Unit
 ) {
-    // El 'context' se define aquí, donde se necesita
     val context: Context = LocalContext.current
 
     Card(
@@ -231,7 +220,6 @@ fun ProductCard(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // Imagen del producto
             Card(
                 modifier = Modifier.size(100.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
@@ -264,7 +252,6 @@ fun ProductCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Información del producto
             Column(
                 modifier = Modifier.weight(1f)
             ) {
