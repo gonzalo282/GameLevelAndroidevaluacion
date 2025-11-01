@@ -1,10 +1,19 @@
 package com.tunombre.gamelevelandroid.ui.screens
-//jbdkjqBDJbdkj
+
+// --- ¡¡¡IMPORTACIONES AÑADIDAS EXPLÍCITAMENTE!!! ---
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add // <--- ESTA ES LA LÍNEA
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove // <--- ESTA ES LA LÍNEA
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
+import java.util.Locale
+// --------------------------------------------------
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,22 +36,23 @@ fun CartScreen(
     navController: NavController,
     viewModel: GameLevelViewModel = viewModel()
 ) {
-    val context = LocalContext.current
+    // val context = LocalContext.current // Eliminado. Advertencia de "Unused variable".
+
     val cartItems by viewModel.cartItems.collectAsState()
     val cartTotal by viewModel.cartTotal.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
-    
+
     LaunchedEffect(Unit) {
         viewModel.loadCart()
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Carrito de Compras") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
                     }
                 }
             )
@@ -68,15 +78,15 @@ fun CartScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "$$cartTotal",
+                                "$${String.format(Locale.US, "%.2f", cartTotal)}",
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.height(12.dp))
-                        
+
                         Button(
                             onClick = {
                                 if (currentUser != null) {
@@ -89,7 +99,7 @@ fun CartScreen(
                                 .fillMaxWidth()
                                 .height(56.dp)
                         ) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = null)
+                            Icon(Icons.Filled.ShoppingCart, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 "Proceder al Pago",
@@ -112,7 +122,7 @@ fun CartScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        Icons.Default.ShoppingCart,
+                        Icons.Filled.ShoppingCart,
                         contentDescription = null,
                         modifier = Modifier.size(80.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -148,7 +158,9 @@ fun CartScreen(
                 items(cartItems) { item ->
                     CartItemCard(
                         item = item,
-                        onRemove = { viewModel.removeFromCart(item.id) }
+                        onRemove = { viewModel.removeFromCart(item.id) },
+                        onIncrement = { viewModel.incrementCartItem(item.id) },
+                        onDecrement = { viewModel.decrementCartItem(item.id) }
                     )
                 }
             }
@@ -159,9 +171,12 @@ fun CartScreen(
 @Composable
 fun CartItemCard(
     item: CartItem,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit
 ) {
     val context = LocalContext.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
@@ -193,55 +208,82 @@ fun CartItemCard(
                         )
                     } else {
                         Icon(
-                            Icons.Default.Star,
+                            Icons.Filled.Star,
                             contentDescription = null,
                             modifier = Modifier.size(40.dp)
                         )
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(12.dp))
-            
+
             // Información
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     item.product.nombre,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
                 )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
+
                 Text(
-                    "Precio: $${item.product.precioFinal}",
+                    "Precio: $${String.format(Locale.US, "%.2f", item.product.precioFinal)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 Text(
-                    "Cantidad: ${item.quantity}",
-                    style = MaterialTheme.typography.bodyMedium
+                    "Subtotal: $${String.format(Locale.US, "%.2f", item.subtotal)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
+                // --- SECCIÓN DE CONTROLES ---
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "Subtotal: $${item.subtotal}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    
+                    // Controles de Cantidad
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // Botón de Restar (-)
+                        OutlinedIconButton(
+                            onClick = onDecrement,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(Icons.Filled.Remove, "Quitar uno") // <-- Ahora debería funcionar
+                        }
+
+                        // Texto de Cantidad
+                        Text(
+                            "${item.quantity}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+
+                        // Botón de Sumar (+)
+                        OutlinedIconButton(
+                            onClick = onIncrement,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(Icons.Filled.Add, "Añadir uno") // <-- Ahora debería funcionar
+                        }
+                    }
+
+                    // Botón de Eliminar (basura)
                     IconButton(onClick = onRemove) {
                         Icon(
-                            Icons.Default.Delete,
+                            Icons.Filled.Delete,
                             contentDescription = "Eliminar",
                             tint = MaterialTheme.colorScheme.error
                         )

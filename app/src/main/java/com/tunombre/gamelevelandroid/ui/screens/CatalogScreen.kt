@@ -1,13 +1,19 @@
 package com.tunombre.gamelevelandroid.ui.screens
 
-// Importaciones (Asegúrate de que androidx.compose.material3.SnackbarHostState esté)
+// --- Importaciones Requeridas ---
 import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,25 +29,28 @@ import coil.compose.AsyncImage
 import com.tunombre.gamelevelandroid.data.model.Product
 import com.tunombre.gamelevelandroid.data.local.SampleProducts
 import com.tunombre.gamelevelandroid.navigation.Screen
-import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
+import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel // <-- IMPORTACIÓN CORRECTA
 import com.tunombre.gamelevelandroid.utils.ImageLoader
-// NO importes más el 'context' de corrutinas
+// ---------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogScreen(
     navController: NavController,
+    // --- ¡¡¡AQUÍ ESTÁ EL ARREGLO PRINCIPAL!!! ---
+    // Era GameLevelViewModel (con L mayúscula)
     viewModel: GameLevelViewModel = viewModel()
 ) {
-    // val context = LocalContext.current // Ya no es necesario aquí, se movió a ProductCard
+    // --------------------------------------------
+
     val products by viewModel.products.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
 
-    // --- CÓDIGO (1/3): Para el Snackbar ---
+    // --- Lógica del Snackbar ---
     val errorMessage by viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    // -------------------------------------------
+    // ---------------------------
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Todos") }
@@ -62,28 +71,24 @@ fun CatalogScreen(
         result
     }
 
+    // Carga los productos al entrar.
+    // (La simulación de login ahora vive en el 'init' del ViewModel)
     LaunchedEffect(Unit) {
-        // --- CÓDIGO NUEVO AÑADIDO (Paso 1.3) ---
-        // ¡Llamamos a la simulación de login!
-        // Esto "inicia sesión" automáticamente al abrir la pantalla.
-        viewModel.simularLogin()
-        // ------------------------------------------
-
-        // Esto ya existía y carga los productos
         viewModel.loadProducts()
     }
+    // ---------------------------------
 
-    // --- CÓDIGO (2/3): Efecto para mostrar el Snackbar ---
+    // Efecto para mostrar el Snackbar
     LaunchedEffect(errorMessage) {
         if (errorMessage != null) {
             snackbarHostState.showSnackbar(
                 message = errorMessage!!,
                 duration = SnackbarDuration.Short
             )
-            viewModel.clearError() // Limpiamos el error para que no se muestre de nuevo
+            viewModel.clearError() // Limpiamos el error
         }
     }
-    // -----------------------------------------------------
+    // ---------------------------------
 
     Scaffold(
         topBar = {
@@ -91,12 +96,12 @@ fun CatalogScreen(
                 title = { Text("Catálogo") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
                     }
                 },
                 actions = {
                     IconButton(onClick = { navController.navigate(Screen.Cart.route) }) {
-                        Icon(Icons.Default.ShoppingCart, "Carrito")
+                        Icon(Icons.Filled.ShoppingCart, "Carrito")
                     }
                     IconButton(onClick = {
                         if (currentUser != null) {
@@ -105,14 +110,14 @@ fun CatalogScreen(
                             navController.navigate(Screen.Login.route)
                         }
                     }) {
-                        Icon(Icons.Default.Person, "Perfil")
+                        Icon(Icons.Filled.Person, "Perfil")
                     }
                 }
             )
         },
-        // --- CÓDIGO (3/3): Añadir el SnackbarHost al Scaffold ---
+        // Añadir el SnackbarHost al Scaffold
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-        // --------------------------------------------------------
+        // ---------------------------------
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -127,11 +132,11 @@ fun CatalogScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 placeholder = { Text("Buscar juegos...") },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
+                leadingIcon = { Icon(Icons.Filled.Search, null) },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Close, "Limpiar")
+                            Icon(Icons.Filled.Close, "Limpiar")
                         }
                     }
                 },
@@ -168,7 +173,7 @@ fun CatalogScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            Icons.Default.Search,
+                            Icons.Filled.Search,
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -176,7 +181,7 @@ fun CatalogScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             "No se encontraron productos",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme. typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -193,10 +198,12 @@ fun CatalogScreen(
                             onClick = {
                                 navController.navigate(Screen.ProductDetail.createRoute(product.id))
                             },
+                            // --- ¡¡¡AQUÍ ESTÁ EL ARREGLO N°2!!! ---
+                            // Le pasamos el objeto 'product' completo, no solo 'product.id'
                             onAddToCart = {
-                                // Esta llamada ahora SÍ debería funcionar
                                 viewModel.addToCart(product)
                             }
+                            // ----------------------------------
                         )
                     }
                 }
@@ -247,7 +254,7 @@ fun ProductCard(
                         )
                     } else {
                         Icon(
-                            Icons.Default.Star,
+                            Icons.Filled.Star,
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.primary
@@ -317,7 +324,7 @@ fun ProductCard(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = product.stock > 0
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
+                    Icon(Icons.Filled.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(if (product.stock > 0) "Agregar" else "Sin Stock")
                 }

@@ -15,9 +15,7 @@ import kotlinx.coroutines.launch
 
 class GameLevelViewModel : ViewModel() {
 
-    // ¡¡¡AQUÍ ESTÁ EL CAMBIO N°2!!!
-    // Ya no creamos una 'new' instancia, nos referimos al 'object' (Singleton).
-    // Eliminamos los paréntesis ()
+    // Nos referimos al 'object' (Singleton)
     private val repository = GameLevelRepository
     private var useSampleData = false
 
@@ -63,6 +61,15 @@ class GameLevelViewModel : ViewModel() {
     // Error State
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+
+    // --- ¡¡¡BLOQUE init MOVIDO AQUÍ!!! ---
+    // Ahora se ejecuta DESPUÉS de que _currentUser y _authToken existan.
+    init {
+        // Simula el login tan pronto como el ViewModel se crea.
+        simularLogin()
+    }
+    // ------------------------------------
 
     // Auth Methods
     fun login(email: String, password: String, onSuccess: () -> Unit) {
@@ -122,7 +129,7 @@ class GameLevelViewModel : ViewModel() {
     }
 
     // --- Función de Simulación ---
-    fun simularLogin() {
+    private fun simularLogin() { // <-- La he hecho 'private'
         val usuarioSimulado = User(
             id = 99,
             nombre = "Usuario de Prueba",
@@ -132,7 +139,7 @@ class GameLevelViewModel : ViewModel() {
         )
         val tokenSimulado = "token_falso_para_pruebas_123456789"
 
-        _currentUser.value = usuarioSimulado
+        _currentUser.value = usuarioSimulado // Esta línea (la 143) ya no será nula
         _authToken.value = tokenSimulado
     }
     // ------------------------------------------
@@ -229,11 +236,21 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
+    fun incrementCartItem(itemId: Int) {
+        viewModelScope.launch {
+            repository.incrementCartItem(itemId)
+        }
+    }
+
+    fun decrementCartItem(itemId: Int) {
+        viewModelScope.launch {
+            repository.decrementCartItem(itemId)
+        }
+    }
+
     private fun updateCartTotal() {
         // Obsoleto.
     }
-
-    // ----------------------------------------
 
     // Reviews Methods
     fun loadProductReviews(productId: Int) {
