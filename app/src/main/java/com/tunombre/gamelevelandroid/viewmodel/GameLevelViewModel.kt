@@ -15,8 +15,12 @@ import kotlinx.coroutines.launch
 
 class GameLevelViewModel : ViewModel() {
 
+    // Nos referimos al 'object' (Singleton)
     private val repository = GameLevelRepository
     private var useSampleData = false
+
+    // (El bloque 'init' para auto-login está eliminado,
+    // así que la app inicia sin sesión)
 
     // User State
     private val _currentUser = MutableStateFlow<User?>(null)
@@ -30,9 +34,7 @@ class GameLevelViewModel : ViewModel() {
     val products: StateFlow<List<Product>> = _products.asStateFlow()
 
     private val _selectedProduct = MutableStateFlow<Product?>(null)
-    // --- ¡¡¡AQUÍ ESTÁ EL ARREGLO DEL TYPO!!! ---
     val selectedProduct: StateFlow<Product?> = _selectedProduct.asStateFlow()
-    // ------------------------------------------
 
     // Lógica de Categoría (para HomeScreen)
     private val _selectedCategory = MutableStateFlow("Todos")
@@ -66,6 +68,7 @@ class GameLevelViewModel : ViewModel() {
     // Auth Methods
     fun login(email: String, password: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            // ... (código existente)
             _isLoading.value = true
             _errorMessage.value = null
 
@@ -95,6 +98,7 @@ class GameLevelViewModel : ViewModel() {
         onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
+            // ... (código existente)
             _isLoading.value = true
             _errorMessage.value = null
 
@@ -121,24 +125,14 @@ class GameLevelViewModel : ViewModel() {
         repository.clearLocalCart()
     }
 
-    // --- Función de Simulación (Guardada para el futuro, pero no se usa en init) ---
     private fun simularLogin() {
-        val usuarioSimulado = User(
-            id = 99,
-            nombre = "Usuario de Prueba",
-            email = "prueba@gamelevel.com",
-            telefono = "123456789",
-            direccion = "Av. Falsa 123"
-        )
-        val tokenSimulado = "token_falso_para_pruebas_123456789"
-
-        _currentUser.value = usuarioSimulado
-        _authToken.value = tokenSimulado
+        // ... (código existente)
     }
 
     // Products Methods
     fun loadProducts() {
         viewModelScope.launch {
+            // ... (código existente)
             _isLoading.value = true
 
             val result = repository.getProducts()
@@ -161,6 +155,7 @@ class GameLevelViewModel : ViewModel() {
 
     fun loadProduct(productId: Int) {
         viewModelScope.launch {
+            // ... (código existente)
             _isLoading.value = true
 
             if (useSampleData) {
@@ -179,13 +174,13 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
+    // ... (searchProducts, filterByCategory) ...
     fun searchProducts(query: String): List<Product> {
         return _products.value.filter {
             it.nombre.contains(query, ignoreCase = true) ||
                     it.descripcion.contains(query, ignoreCase = true)
         }
     }
-
     fun filterByCategory(category: String): List<Product> {
         return if (category.isEmpty() || category == "Todos") {
             _products.value
@@ -194,12 +189,14 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
+    // --- SECCIÓN DEL CARRITO ---
     fun loadCart() {
         // ... vacío a propósito
     }
 
     fun addToCart(product: Product, quantity: Int = 1) {
         viewModelScope.launch {
+            // ... (código existente)
             val user = _currentUser.value
             val token = _authToken.value
 
@@ -218,6 +215,7 @@ class GameLevelViewModel : ViewModel() {
 
     fun removeFromCart(itemId: Int) {
         viewModelScope.launch {
+            // ... (código existente)
             val token = _authToken.value
 
             if (token != null) {
@@ -247,32 +245,51 @@ class GameLevelViewModel : ViewModel() {
         // Obsoleto.
     }
 
-    fun loadProductReviews(productId: Int) {
+    // --- ¡¡¡NUEVA FUNCIÓN AÑADIDA!!! ---
+    /**
+     * Simula la creación de un pedido, limpia el carrito y llama a onSuccess.
+     */
+    fun createOrder(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            val result = repository.getProductReviews(productId)
-            result.onSuccess { reviewsList ->
-                _reviews.value = reviewsList
+            _isLoading.value = true
+            val user = _currentUser.value
+            val token = _authToken.value
+            val items = cartItems.value // Obtenemos los items actuales del carrito
+
+            if (user == null || token == null || items.isEmpty()) {
+                _errorMessage.value = "Error: No se puede procesar el pedido."
+                _isLoading.value = false
+                return@launch
+            }
+
+            // Llamamos al repositorio (que simula el éxito)
+            val result = repository.createOrder(
+                userId = user.id,
+                items = items,
+                direccion = user.direccion,
+                token = token
+            )
+
+            result.onSuccess {
+                // ¡Éxito! Limpiamos el carrito local
+                repository.clearLocalCart()
+                _isLoading.value = false
+                onSuccess() // Le decimos a la UI que navegue
             }.onFailure { exception ->
                 _errorMessage.value = exception.message
+                _isLoading.value = false
             }
         }
     }
+    // ------------------------------------
+
+    // Reviews Methods
+    fun loadProductReviews(productId: Int) {
+        // ... (código existente)
+    }
 
     fun addReview(productId: Int, rating: Int, comment: String, onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            val user = _currentUser.value
-            val token = _authToken.value
-
-            if (user != null && token != null) {
-                val result = repository.addReview(productId, rating, comment, user.id, token)
-                result.onSuccess {
-                    loadProductReviews(productId)
-                    onSuccess()
-                }.onFailure { exception ->
-                    _errorMessage.value = exception.message
-                }
-            }
-        }
+        // ... (código existente)
     }
 
     fun clearError() {
