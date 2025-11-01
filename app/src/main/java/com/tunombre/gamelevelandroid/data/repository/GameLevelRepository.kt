@@ -1,20 +1,17 @@
 package com.tunombre.gamelevelandroid.data.repository
 
-import com.tunombre.gamelevelandroid.data.local.SampleProducts // <-- ¡IMPORTANTE!
+import com.tunombre.gamelevelandroid.data.local.SampleProducts
 import com.tunombre.gamelevelandroid.data.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 // --- DEFINICIÓN LOCAL TEMPORAL ---
 data class ApiResponse(val success: Boolean, val message: String)
 // ---------------------------------
 
-// ¡¡¡AQUÍ ESTÁ EL CAMBIO N°1!!!
-// Cambiamos 'class' por 'object'.
 object GameLevelRepository {
-
-    // --- NO MÁS 'apiService' ---
 
     // --- Base de datos local en memoria ---
     private val _localCart = MutableStateFlow<List<CartItem>>(emptyList())
@@ -48,7 +45,9 @@ object GameLevelRepository {
     // --- Lógica de Productos (100% Local) ---
     suspend fun getProducts(): Result<List<Product>> {
         return try {
-            _productCache = SampleProducts.sampleProducts
+            if (_productCache.isEmpty()) { // Solo carga desde Sample si está vacío
+                _productCache = SampleProducts.sampleProducts
+            }
             Result.success(_productCache)
         } catch (e: Exception) {
             Result.failure(e)
@@ -78,35 +77,81 @@ object GameLevelRepository {
         val productToAdd = _productCache.find { it.id == productId }
 
         if (productToAdd == null) {
-            return Result.failure(Exception("Error local: Producto no encontrado en caché."))
+            return Result.failure(Exception("Error local: Producto no encontrado en caché. Asegúrate de llamar a getProducts() primero."))
         }
 
-        val currentCart = _localCart.value.toMutableList()
-        val existingItem = currentCart.find { it.product.id == productId }
-
-        if (existingItem != null) {
-            val updatedItem = existingItem.copy(quantity = existingItem.quantity + quantity)
-            val itemIndex = currentCart.indexOf(existingItem)
-            currentCart[itemIndex] = updatedItem
-        } else {
-            val newItem = CartItem(
-                id = cartIdCounter++,
-                product = productToAdd,
-                quantity = quantity
-            )
-            currentCart.add(newItem)
+        _localCart.update { currentCart ->
+            val existingItem = currentCart.find { it.product.id == productId }
+            if (existingItem != null) {
+                // Si existe, actualiza la cantidad
+                currentCart.map {
+                    if (it.id == existingItem.id) {
+                        it.copy(quantity = it.quantity + quantity)
+                    } else {
+                        it
+                    }
+                }
+            } else {
+                // Si es nuevo, añádelo
+                currentCart + CartItem(
+                    id = cartIdCounter++,
+                    product = productToAdd,
+                    quantity = quantity
+                )
+            }
         }
-
-        _localCart.value = currentCart
         return Result.success(ApiResponse(true, "Producto agregado al carrito local"))
     }
 
     suspend fun removeFromCart(itemId: Int, token: String): Result<ApiResponse> {
-        val currentCart = _localCart.value.toMutableList()
-        currentCart.removeAll { it.id == itemId }
-        _localCart.value = currentCart
+        _localCart.update { currentCart ->
+            currentCart.filterNot { it.id == itemId }
+        }
         return Result.success(ApiResponse(true, "Producto eliminado del carrito local"))
     }
+
+    // --- ¡¡¡NUEVAS FUNCIONES AÑADIDAS!!! ---
+
+    /**
+     * Incrementa la cantidad de un ítem en el carrito.
+     */
+    suspend fun incrementCartItem(itemId: Int): Result<ApiResponse> {
+        _localCart.update { currentCart ->
+            currentCart.map {
+                if (it.id == itemId) {
+                    it.copy(quantity = it.quantity + 1)
+                } else {
+                    it
+                }
+            }
+        }
+        return Result.success(ApiResponse(true, "Cantidad incrementada"))
+    }
+
+    /**
+     * Decrementa la cantidad de un ítem. Si la cantidad llega a 0, lo elimina.
+     */
+    suspend fun decrementCartItem(itemId: Int): Result<ApiResponse> {
+        _localCart.update { currentCart ->
+            val itemToUpdate = currentCart.find { it.id == itemId }
+
+            if (itemToUpdate != null && itemToUpdate.quantity > 1) {
+                // Si la cantidad es > 1, solo resta
+                currentCart.map {
+                    if (it.id == itemId) {
+                        it.copy(quantity = it.quantity - 1)
+                    } else {
+                        it
+                    }
+                }
+            } else {
+                // Si la cantidad es 1 (o menos), elimina el ítem
+                currentCart.filterNot { it.id == itemId }
+            }
+        }
+        return Result.success(ApiResponse(true, "Cantidad decrementada/eliminada"))
+    }
+    // -----------------------------------------
 
     // --- Lógica de Reseñas (Simulada) ---
     suspend fun getProductReviews(productId: Int): Result<List<Review>> {
@@ -125,7 +170,7 @@ object GameLevelRepository {
             items = items,
             total = items.sumOf { it.subtotal },
             estado = "Procesando (Simulado)",
-            fecha = "28/10/2025",
+            fecha = "2025-10-29", // Usar formato ISO
             direccionEnvio = direccion
         )
         return Result.success(fakeOrder)
