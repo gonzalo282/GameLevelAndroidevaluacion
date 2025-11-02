@@ -15,16 +15,23 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
+import com.tunombre.gamelevelandroid.data.repository.GameLevelRepository
+import androidx.compose.ui.platform.LocalContext
+import android.util.Patterns
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     navController: NavController,
-    viewModel: GameLevelViewModel) {
+    viewModel: GameLevelViewModel
+) {
+    val context = LocalContext.current
+    LaunchedEffect(Unit) { GameLevelRepository.init(context) }
+
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -32,15 +39,36 @@ fun RegisterScreen(
     var telefono by remember { mutableStateOf("") }
     var direccion by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    
+
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    
+
+    // 🔹 Validaciones dinámicas
+    val emailValido = remember(email) {
+        Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
+
+    val telefonoValido = remember(telefono) {
+        telefono.matches(Regex("^\\+?\\d{9,15}\$"))
+    }
+
     val passwordsMatch = password == confirmPassword
-    val isFormValid = nombre.isNotBlank() && email.isNotBlank() && 
-                     password.isNotBlank() && passwordsMatch &&
-                     telefono.isNotBlank() && direccion.isNotBlank()
-    
+
+    val isFormValid =
+        nombre.isNotBlank() && emailValido && telefonoValido &&
+                password.isNotBlank() && passwordsMatch &&
+                direccion.isNotBlank()
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            Toast.makeText(
+                context,
+                it.ifBlank { "No se pudo registrar. Intenta nuevamente." },
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -67,17 +95,17 @@ fun RegisterScreen(
                 modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text(
                 "Crear Cuenta",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             OutlinedTextField(
                 value = nombre,
                 onValueChange = { nombre = it },
@@ -86,9 +114,10 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
+            // 🔹 Campo de email con validación visual
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -96,11 +125,18 @@ fun RegisterScreen(
                 leadingIcon = { Icon(Icons.Default.Email, null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = email.isNotBlank() && !emailValido,
+                supportingText = {
+                    if (email.isNotBlank() && !emailValido) {
+                        Text("Ingresa un correo electrónico válido")
+                    }
+                }
             )
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
+            // 🔹 Campo de teléfono con validación visual
             OutlinedTextField(
                 value = telefono,
                 onValueChange = { telefono = it },
@@ -108,11 +144,17 @@ fun RegisterScreen(
                 leadingIcon = { Icon(Icons.Default.Phone, null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = telefono.isNotBlank() && !telefonoValido,
+                supportingText = {
+                    if (telefono.isNotBlank() && !telefonoValido) {
+                        Text("Ingresa un número válido (9 a 15 dígitos)")
+                    }
+                }
             )
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             OutlinedTextField(
                 value = direccion,
                 onValueChange = { direccion = it },
@@ -121,9 +163,9 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -142,9 +184,9 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
@@ -161,9 +203,9 @@ fun RegisterScreen(
                     }
                 }
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             if (errorMessage != null) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -180,10 +222,15 @@ fun RegisterScreen(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
-            
+
             Button(
                 onClick = {
                     viewModel.register(nombre, email, password, telefono, direccion) {
+                        Toast.makeText(
+                            context,
+                            "Registro exitoso Bienvenido, $nombre",
+                            Toast.LENGTH_LONG
+                        ).show()
                         navController.navigate(Screen.Catalog.route) {
                             popUpTo(Screen.Home.route) { inclusive = false }
                         }
@@ -203,12 +250,10 @@ fun RegisterScreen(
                     Text("Registrarse", style = MaterialTheme.typography.titleMedium)
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            TextButton(
-                onClick = { navController.popBackStack() }
-            ) {
+
+            TextButton(onClick = { navController.popBackStack() }) {
                 Text("¿Ya tienes cuenta? Inicia sesión")
             }
         }

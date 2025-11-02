@@ -15,23 +15,47 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
+import com.tunombre.gamelevelandroid.data.repository.GameLevelRepository
+import androidx.compose.ui.platform.LocalContext
+import android.util.Patterns
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     navController: NavController,
-    viewModel: GameLevelViewModel) {
+    viewModel: GameLevelViewModel
+) {
+    // Inicializa Room al cargar la pantalla
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        GameLevelRepository.init(context)
+    }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    
+
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    
+
+    // 🔹 Validación de formato de email
+    val emailValido = remember(email) {
+        Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
+
+    // Si hay error en el ViewModel/Repository, mostrarlo como Toast
+    LaunchedEffect(errorMessage) {
+        errorMessage?.takeIf { it.isNotBlank() }?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val isFormValid = emailValido && password.isNotBlank()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -59,23 +83,24 @@ fun LoginScreen(
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Text(
                 "Bienvenido",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Text(
                 "Inicia sesión para continuar",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
+            // 🔹 Campo de correo con validación de formato
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -83,11 +108,17 @@ fun LoginScreen(
                 leadingIcon = { Icon(Icons.Default.Email, null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = email.isNotBlank() && !emailValido,
+                supportingText = {
+                    if (email.isNotBlank() && !emailValido) {
+                        Text("Formato de correo inválido")
+                    }
+                }
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -104,31 +135,27 @@ fun LoginScreen(
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            if (errorMessage != null) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.error)
-                ) {
-                    Text(
-                        errorMessage!!,
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
+                singleLine = true,
+                isError = password.isNotBlank() && password.length < 4,
+                supportingText = {
+                    if (password.isNotBlank() && password.length < 4) {
+                        Text("La contraseña debe tener al menos 4 caracteres")
+                    }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 🔹 Botón solo activo si los campos son válidos
             Button(
                 onClick = {
                     viewModel.login(email, password) {
+                        Toast.makeText(
+                            context,
+                            "Usuario logueado",
+                            Toast.LENGTH_LONG
+                        ).show()
+
                         navController.navigate(Screen.Catalog.route) {
                             popUpTo(Screen.Home.route) { inclusive = false }
                         }
@@ -137,7 +164,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
+                enabled = !isLoading && isFormValid
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -148,12 +175,10 @@ fun LoginScreen(
                     Text("Iniciar Sesión", style = MaterialTheme.typography.titleMedium)
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            TextButton(
-                onClick = { navController.navigate(Screen.Register.route) }
-            ) {
+
+            TextButton(onClick = { navController.navigate(Screen.Register.route) }) {
                 Text("¿No tienes cuenta? Regístrate aquí")
             }
         }

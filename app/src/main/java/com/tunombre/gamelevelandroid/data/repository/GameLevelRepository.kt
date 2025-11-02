@@ -6,6 +6,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import android.content.Context
+import com.tunombre.gamelevelandroid.data.local.AppDatabase
+import com.tunombre.gamelevelandroid.data.local.UserDao
+import com.tunombre.gamelevelandroid.data.local.UserEntity
+import java.security.MessageDigest
+
 
 // --- DEFINICIÓN LOCAL TEMPORAL ---
 data class ApiResponse(val success: Boolean, val message: String)
@@ -18,13 +24,48 @@ object GameLevelRepository {
     private var cartIdCounter = 0
     private var _productCache = emptyList<Product>()
 
-    // --- Lógica de Autenticación (Simulada) ---
-    suspend fun login(email: String, password: String): Result<AuthResponse> {
-        val fakeUser = User(1, "Usuario Simulado", email, "12345", "Calle Falsa 123")
-        val fakeToken = "token_simulado_local_123"
-        return Result.success(AuthResponse(true, "Login simulado exitoso", fakeUser, fakeToken))
+    // --------- Acceso a Room (nuevo) ---------
+    private var db: AppDatabase? = null
+    private var userDao: UserDao? = null
+
+    fun init(context: Context) {
+        if (db == null) {
+            db = AppDatabase.getInstance(context)
+            userDao = db!!.userDao()
+        }
     }
 
+    private fun sha256(text: String): String {
+        val md = MessageDigest.getInstance("SHA-256")
+        val bytes = md.digest(text.toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+// -----------------------------------------
+
+
+    // --- Lógica de Autenticación (Simulada) ---
+    // LOGIN: valida email + contraseña (hash) en Room
+    suspend fun login(email: String, password: String): Result<AuthResponse> {
+        val dao = userDao ?: return Result.failure(
+            IllegalStateException("DB no inicializada. Llama a GameLevelRepository.init(context).")
+        )
+        val entity = dao.auth(email.trim(), sha256(password))
+        return if (entity != null) {
+            val user = User(
+                id = entity.id,
+                nombre = entity.nombre,
+                email = entity.email,
+                telefono = entity.telefono,
+                direccion = entity.direccion
+            )
+            val token = "token_local_${user.id}_${System.currentTimeMillis()}"
+            Result.success(AuthResponse(true, "Login exitoso", user, token))
+        } else {
+            Result.success(AuthResponse(false, "Correo o contraseña inválidos", null, null))
+        }
+    }
+
+    // REGISTER: inserta en Room si el email no existe y devuelve el usuario creado
     suspend fun register(
         nombre: String,
         email: String,
@@ -32,14 +73,51 @@ object GameLevelRepository {
         telefono: String,
         direccion: String
     ): Result<AuthResponse> {
-        val fakeUser = User(2, nombre, email, telefono, direccion)
-        val fakeToken = "token_simulado_local_456"
-        return Result.success(AuthResponse(true, "Registro simulado exitoso", fakeUser, fakeToken))
+        val dao = userDao ?: return Result.failure(
+            IllegalStateException("DB no inicializada. Llama a GameLevelRepository.init(context).")
+        )
+
+        val emailTrim = email.trim()
+        val existente = dao.findByEmail(emailTrim)
+        if (existente != null) {
+            return Result.success(AuthResponse(false, "El correo ya está registrado", null, null))
+        }
+
+        val entity = UserEntity(
+            nombre = nombre.trim(),
+            email = emailTrim,
+            telefono = telefono.trim(),
+            direccion = direccion.trim(),
+            passwordHash = sha256(password)
+        )
+
+        val newId = dao.insert(entity).toInt()
+        if (newId <= 0) {
+            return Result.failure(IllegalStateException("No se pudo insertar el usuario"))
+        }
+
+        val created = dao.findById(newId)
+            ?: return Result.failure(IllegalStateException("Usuario insertado pero no recuperado"))
+
+        val user = User(
+            id = created.id,
+            nombre = created.nombre,
+            email = created.email,
+            telefono = created.telefono,
+            direccion = created.direccion
+        )
+        val token = "token_local_${user.id}_${System.currentTimeMillis()}"
+        return Result.success(AuthResponse(true, "Registro exitoso", user, token))
     }
 
     suspend fun getUser(userId: Int, token: String): Result<User> {
-        val fakeUser = User(userId, "Usuario Simulado", "test@test.com", "12345", "Calle Falsa 123")
-        return Result.success(fakeUser)
+        val dao = userDao ?: return Result.failure(
+            IllegalStateException("DB no inicializada. Llama a GameLevelRepository.init(context).")
+        )
+        val entity = dao.findById(userId)
+            ?: return Result.failure(NoSuchElementException("Usuario no encontrado"))
+        val user = User(entity.id, entity.nombre, entity.email, entity.telefono, entity.direccion)
+        return Result.success(user)
     }
 
     // --- Lógica de Productos (100% Local) ---
@@ -176,4 +254,46 @@ object GameLevelRepository {
     suspend fun getUserOrders(userId: Int, token: String): Result<List<Order>> {
         return Result.success(emptyList())
     }
+
+    /**
+     * Inserta un usuario en la tabla `usuarios` usando Room.
+     * NO modifica nada del carrito ni productos.
+     *
+     * @return Result<ApiResponse> con success=true si se insertó, o false con mensaje si el correo ya existe.
+     */
+    suspend fun registerUserLocal(
+        nombre: String,
+        email: String,
+        password: String,
+        telefono: String,
+        direccion: String
+    ): Result<ApiResponse> {
+        val dao = userDao ?: return Result.failure(
+            IllegalStateException("DB no inicializada. Llama a GameLevelRepository.init(context) antes de registrar.")
+        )
+
+        val emailTrim = email.trim()
+        val existente = dao.findByEmail(emailTrim)
+        if (existente != null) {
+            return Result.success(ApiResponse(false, "El correo ya está registrado"))
+        }
+
+        val entity = UserEntity(
+            nombre = nombre.trim(),
+            email = emailTrim,
+            telefono = telefono.trim(),
+            direccion = direccion.trim(),
+            passwordHash = sha256(password) // NUNCA guardes la contraseña en texto plano
+        )
+
+        val newId = dao.insert(entity).toInt()
+        return if (newId > 0) {
+            Result.success(ApiResponse(true, "Registro exitoso"))
+        } else {
+            Result.failure(IllegalStateException("No se pudo insertar el usuario"))
+        }
+    }
+
+
+
 }
