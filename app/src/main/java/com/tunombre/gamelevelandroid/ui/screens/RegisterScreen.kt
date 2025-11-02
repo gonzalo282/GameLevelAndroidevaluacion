@@ -1,7 +1,7 @@
 package com.tunombre.gamelevelandroid.ui.screens
 
 import android.util.Patterns
-import androidx.compose.foundation.BorderStroke
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
-import android.widget.Toast // <-- Importación para Toasts
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -267,7 +266,7 @@ fun RegisterScreen(
             // --- Botón de Registrarse ---
             Button(
                 onClick = {
-                    // Llama a la función de registro
+                    // ¡¡¡Llama a la función de REGISTRO correcta!!!
                     viewModel.register(nombre, email, password, telefono, direccion) {
                         // Esto es el 'onSuccess'
                         Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()

@@ -22,9 +22,8 @@ class GameLevelViewModel : ViewModel() {
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
-    // --- ARREGLADO: 'authToken' ahora es 'private' ya que la UI no lo usa ---
     private val _authToken = MutableStateFlow<String?>(null)
-    // val authToken: StateFlow<String?> = _authToken.asStateFlow() // <-- Eliminado
+    // val authToken: StateFlow<String?> = _authToken.asStateFlow() // Privado
 
     // Products State
     private val _products = MutableStateFlow<List<Product>>(emptyList())
@@ -53,6 +52,14 @@ class GameLevelViewModel : ViewModel() {
         initialValue = 0.0
     )
 
+    val cartItemCount: StateFlow<Int> = cartItems.map { items ->
+        items.sumOf { it.quantity }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = 0
+    )
+
     // El resto de tus variables de estado
     private val _reviews = MutableStateFlow<List<Review>>(emptyList())
     val reviews: StateFlow<List<Review>> = _reviews.asStateFlow()
@@ -60,6 +67,9 @@ class GameLevelViewModel : ViewModel() {
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    private val _successMessage = MutableStateFlow<String?>(null)
+    val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
 
     // Auth Methods
@@ -120,8 +130,6 @@ class GameLevelViewModel : ViewModel() {
         repository.clearLocalCart()
     }
 
-    // --- 'simularLogin' ELIMINADO (Código muerto) ---
-
     // Products Methods
     fun loadProducts() {
         viewModelScope.launch {
@@ -156,7 +164,9 @@ class GameLevelViewModel : ViewModel() {
                 result.onSuccess { product ->
                     _selectedProduct.value = product
                 }.onFailure { exception ->
+                    // --- ¡¡¡AQUÍ ESTÁ EL ARREGLO!!! ---
                     _selectedProduct.value = SampleProducts.getProductById(productId)
+                    // ---------------------------------
                     _errorMessage.value = exception.message
                 }
             }
@@ -164,8 +174,6 @@ class GameLevelViewModel : ViewModel() {
             _isLoading.value = false
         }
     }
-
-    // --- 'searchProducts' y 'filterByCategory' ELIMINADOS (Obsoletos) ---
 
     // --- SECCIÓN DEL CARRITO ---
     fun loadCart() {
@@ -181,7 +189,7 @@ class GameLevelViewModel : ViewModel() {
             if (user != null && token != null) {
                 val result = repository.addToCart(product.id, quantity, user.id, token)
                 result.onSuccess {
-                    // No es necesario llamar a loadCart()
+                    _successMessage.value = "¡${product.nombre} agregado al carrito!"
                 }.onFailure { exception ->
                     _errorMessage.value = exception.message
                 }
@@ -217,8 +225,6 @@ class GameLevelViewModel : ViewModel() {
             repository.decrementCartItem(itemId)
         }
     }
-
-    // --- 'updateCartTotal' ELIMINADO (Obsoleto) ---
 
     // --- Lógica de Pedidos (Checkout) ---
     fun createOrder(onSuccess: () -> Unit) {
@@ -266,7 +272,6 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
-    // --- ARREGLADO: Añadimos @Suppress para la advertencia ---
     @Suppress("unused")
     fun addReview(productId: Int, rating: Int, comment: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
@@ -291,5 +296,9 @@ class GameLevelViewModel : ViewModel() {
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    fun clearSuccessMessage() {
+        _successMessage.value = null
     }
 }

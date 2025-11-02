@@ -1,7 +1,7 @@
 package com.tunombre.gamelevelandroid.ui.screens
 
-// --- ¡¡¡LISTA COMPLETA DE IMPORTACIONES!!! ---
 import android.content.Context
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,7 +14,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.*
+import androidx.compose.material3.* // <-- Importación clave
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.tunombre.gamelevelandroid.data.local.SampleProducts
@@ -30,9 +31,8 @@ import com.tunombre.gamelevelandroid.data.model.Product
 import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.utils.ImageLoader
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
-// ---------------------------------------------
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class) // <-- BadgedBox es Experimental
 @Composable
 fun CatalogScreen(
     navController: NavController,
@@ -42,14 +42,19 @@ fun CatalogScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
 
+    // --- Lógica del Snackbar ---
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val successMessage by viewModel.successMessage.collectAsState() // <-- NUEVO
     val snackbarHostState = remember { SnackbarHostState() }
+    // ---------------------------
+
+    // --- Contador del Carrito ---
+    val cartItemCount by viewModel.cartItemCount.collectAsState() // <-- NUEVO
+    // ----------------------------
 
     var searchQuery by remember { mutableStateOf("") }
 
-    // Leemos la categoría desde el ViewModel
     val selectedCategory by viewModel.selectedCategory.collectAsState()
-
     val categories = SampleProducts.categories
 
     val filteredProducts = remember(products, searchQuery, selectedCategory) {
@@ -70,6 +75,7 @@ fun CatalogScreen(
         viewModel.loadProducts()
     }
 
+    // Efecto para mostrar el Snackbar de Error
     LaunchedEffect(errorMessage) {
         if (errorMessage != null) {
             snackbarHostState.showSnackbar(
@@ -79,6 +85,18 @@ fun CatalogScreen(
             viewModel.clearError()
         }
     }
+
+    // --- ¡¡¡NUEVO LaunchedEffect para ÉXITO!!! ---
+    LaunchedEffect(successMessage) {
+        if (successMessage != null) {
+            snackbarHostState.showSnackbar(
+                message = successMessage!!,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearSuccessMessage()
+        }
+    }
+    // -------------------------------------------
 
     Scaffold(
         topBar = {
@@ -90,9 +108,20 @@ fun CatalogScreen(
                     }
                 },
                 actions = {
+                    // --- ¡¡¡ICONO DEL CARRITO ACTUALIZADO CON BADGE!!! ---
                     IconButton(onClick = { navController.navigate(Screen.Cart.route) }) {
-                        Icon(Icons.Filled.ShoppingCart, "Carrito")
+                        BadgedBox(
+                            badge = {
+                                // Solo muestra el badge si hay items
+                                if (cartItemCount > 0) {
+                                    Badge { Text("$cartItemCount") }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Filled.ShoppingCart, "Carrito")
+                        }
                     }
+                    // -----------------------------------------------------
                     IconButton(onClick = {
                         if (currentUser != null) {
                             navController.navigate(Screen.Profile.route)
@@ -140,7 +169,6 @@ fun CatalogScreen(
                 categories.forEach { category ->
                     Tab(
                         selected = selectedCategory == category,
-                        // Al hacer clic, actualizamos el ViewModel
                         onClick = { viewModel.setCategoryFilter(category) },
                         text = { Text(category) }
                     )
@@ -185,11 +213,11 @@ fun CatalogScreen(
                         ProductCard(
                             product = product,
                             onClick = {
-                                // Reseteamos el filtro al ver un detalle
                                 viewModel.setCategoryFilter("Todos")
                                 navController.navigate(Screen.ProductDetail.createRoute(product.id))
                             },
                             onAddToCart = {
+                                // ¡Esto ahora mostrará un Snackbar de éxito!
                                 viewModel.addToCart(product)
                             }
                         )
@@ -212,7 +240,7 @@ fun ProductCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.secondary)
     ) {
         Row(
             modifier = Modifier
@@ -221,7 +249,7 @@ fun ProductCard(
         ) {
             Card(
                 modifier = Modifier.size(100.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),

@@ -1,7 +1,7 @@
 package com.tunombre.gamelevelandroid.ui.screens
 
-// --- ¡¡¡LISTA COMPLETA DE IMPORTACIONES!!! ---
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,14 +12,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.tunombre.gamelevelandroid.R
 import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
-// ---------------------------------------------
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class) // <-- BadgedBox es Experimental
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -27,14 +30,28 @@ fun HomeScreen(
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
 
+    // --- Contador del Carrito ---
+    val cartItemCount by viewModel.cartItemCount.collectAsState() // <-- NUEVO
+    // ----------------------------
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Game Level") },
                 actions = {
+                    // --- ¡¡¡ICONO DEL CARRITO ACTUALIZADO CON BADGE!!! ---
                     IconButton(onClick = { navController.navigate(Screen.Cart.route) }) {
-                        Icon(Icons.Default.ShoppingCart, "Carrito")
+                        BadgedBox(
+                            badge = {
+                                if (cartItemCount > 0) {
+                                    Badge { Text("$cartItemCount") }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Default.ShoppingCart, "Carrito")
+                        }
                     }
+                    // -----------------------------------------------------
                     IconButton(onClick = {
                         if (currentUser != null) {
                             navController.navigate(Screen.Profile.route)
