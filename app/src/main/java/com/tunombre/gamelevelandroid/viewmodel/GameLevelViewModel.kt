@@ -15,19 +15,16 @@ import kotlinx.coroutines.launch
 
 class GameLevelViewModel : ViewModel() {
 
-    // Nos referimos al 'object' (Singleton)
     private val repository = GameLevelRepository
     private var useSampleData = false
-
-    // (El bloque 'init' para auto-login está eliminado,
-    // así que la app inicia sin sesión)
 
     // User State
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
+    // --- ARREGLADO: 'authToken' ahora es 'private' ya que la UI no lo usa ---
     private val _authToken = MutableStateFlow<String?>(null)
-    val authToken: StateFlow<String?> = _authToken.asStateFlow()
+    // val authToken: StateFlow<String?> = _authToken.asStateFlow() // <-- Eliminado
 
     // Products State
     private val _products = MutableStateFlow<List<Product>>(emptyList())
@@ -68,7 +65,6 @@ class GameLevelViewModel : ViewModel() {
     // Auth Methods
     fun login(email: String, password: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
-            // ... (código existente)
             _isLoading.value = true
             _errorMessage.value = null
 
@@ -98,7 +94,6 @@ class GameLevelViewModel : ViewModel() {
         onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
-            // ... (código existente)
             _isLoading.value = true
             _errorMessage.value = null
 
@@ -125,14 +120,11 @@ class GameLevelViewModel : ViewModel() {
         repository.clearLocalCart()
     }
 
-    private fun simularLogin() {
-        // ... (código existente)
-    }
+    // --- 'simularLogin' ELIMINADO (Código muerto) ---
 
     // Products Methods
     fun loadProducts() {
         viewModelScope.launch {
-            // ... (código existente)
             _isLoading.value = true
 
             val result = repository.getProducts()
@@ -155,7 +147,6 @@ class GameLevelViewModel : ViewModel() {
 
     fun loadProduct(productId: Int) {
         viewModelScope.launch {
-            // ... (código existente)
             _isLoading.value = true
 
             if (useSampleData) {
@@ -174,29 +165,16 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
-    // ... (searchProducts, filterByCategory) ...
-    fun searchProducts(query: String): List<Product> {
-        return _products.value.filter {
-            it.nombre.contains(query, ignoreCase = true) ||
-                    it.descripcion.contains(query, ignoreCase = true)
-        }
-    }
-    fun filterByCategory(category: String): List<Product> {
-        return if (category.isEmpty() || category == "Todos") {
-            _products.value
-        } else {
-            _products.value.filter { it.categoria == category }
-        }
-    }
+    // --- 'searchProducts' y 'filterByCategory' ELIMINADOS (Obsoletos) ---
 
     // --- SECCIÓN DEL CARRITO ---
     fun loadCart() {
-        // ... vacío a propósito
+        // Esta función está vacía a propósito,
+        // porque el Flow reactivo se encarga de todo.
     }
 
     fun addToCart(product: Product, quantity: Int = 1) {
         viewModelScope.launch {
-            // ... (código existente)
             val user = _currentUser.value
             val token = _authToken.value
 
@@ -215,7 +193,6 @@ class GameLevelViewModel : ViewModel() {
 
     fun removeFromCart(itemId: Int) {
         viewModelScope.launch {
-            // ... (código existente)
             val token = _authToken.value
 
             if (token != null) {
@@ -241,20 +218,15 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
-    private fun updateCartTotal() {
-        // Obsoleto.
-    }
+    // --- 'updateCartTotal' ELIMINADO (Obsoleto) ---
 
-    // --- ¡¡¡NUEVA FUNCIÓN AÑADIDA!!! ---
-    /**
-     * Simula la creación de un pedido, limpia el carrito y llama a onSuccess.
-     */
+    // --- Lógica de Pedidos (Checkout) ---
     fun createOrder(onSuccess: () -> Unit) {
         viewModelScope.launch {
             _isLoading.value = true
             val user = _currentUser.value
             val token = _authToken.value
-            val items = cartItems.value // Obtenemos los items actuales del carrito
+            val items = cartItems.value
 
             if (user == null || token == null || items.isEmpty()) {
                 _errorMessage.value = "Error: No se puede procesar el pedido."
@@ -262,7 +234,6 @@ class GameLevelViewModel : ViewModel() {
                 return@launch
             }
 
-            // Llamamos al repositorio (que simula el éxito)
             val result = repository.createOrder(
                 userId = user.id,
                 items = items,
@@ -271,25 +242,51 @@ class GameLevelViewModel : ViewModel() {
             )
 
             result.onSuccess {
-                // ¡Éxito! Limpiamos el carrito local
                 repository.clearLocalCart()
                 _isLoading.value = false
-                onSuccess() // Le decimos a la UI que navegue
+                onSuccess()
             }.onFailure { exception ->
                 _errorMessage.value = exception.message
                 _isLoading.value = false
             }
         }
     }
-    // ------------------------------------
 
     // Reviews Methods
     fun loadProductReviews(productId: Int) {
-        // ... (código existente)
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = repository.getProductReviews(productId)
+            result.onSuccess { reviewsList ->
+                _reviews.value = reviewsList
+            }.onFailure { exception ->
+                _errorMessage.value = exception.message
+            }
+            _isLoading.value = false
+        }
     }
 
+    // --- ARREGLADO: Añadimos @Suppress para la advertencia ---
+    @Suppress("unused")
     fun addReview(productId: Int, rating: Int, comment: String, onSuccess: () -> Unit) {
-        // ... (código existente)
+        viewModelScope.launch {
+            val user = _currentUser.value
+            val token = _authToken.value
+
+            if (user != null && token != null) {
+                _isLoading.value = true
+                val result = repository.addReview(productId, rating, comment, user.id, token)
+                result.onSuccess {
+                    loadProductReviews(productId) // Recarga las reseñas
+                    onSuccess()
+                }.onFailure { exception ->
+                    _errorMessage.value = exception.message
+                }
+                _isLoading.value = false
+            } else {
+                _errorMessage.value = "Debes iniciar sesión para dejar una reseña"
+            }
+        }
     }
 
     fun clearError() {

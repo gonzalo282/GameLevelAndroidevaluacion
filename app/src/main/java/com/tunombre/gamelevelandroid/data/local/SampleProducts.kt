@@ -210,15 +210,7 @@ object SampleProducts {
             sampleProducts.filter { it.categoria == category }
         }
     }
-    
-    fun searchProducts(query: String): List<Product> {
-        return sampleProducts.filter {
-            it.nombre.contains(query, ignoreCase = true) ||
-            it.descripcion.contains(query, ignoreCase = true) ||
-            it.categoria.contains(query, ignoreCase = true)
-        }
-    }
-    
+
     val categories = listOf(
         "Todos",
         "Ropa",

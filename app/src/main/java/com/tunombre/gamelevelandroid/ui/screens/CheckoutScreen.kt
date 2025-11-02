@@ -2,7 +2,6 @@ package com.tunombre.gamelevelandroid.ui.screens
 
 // --- ¡¡¡IMPORTACIONES AÑADIDAS!!! ---
 // (Asegúrate de que todas estas estén presentes)
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -11,14 +10,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Payment
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
@@ -108,7 +105,7 @@ fun CheckoutScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                     }
 
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),

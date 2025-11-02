@@ -7,24 +7,25 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-// --- DEFINICIÓN LOCAL TEMPORAL ---
 data class ApiResponse(val success: Boolean, val message: String)
-// ---------------------------------
 
 object GameLevelRepository {
 
-    // --- Base de datos local en memoria ---
     private val _localCart = MutableStateFlow<List<CartItem>>(emptyList())
     private var cartIdCounter = 0
     private var _productCache = emptyList<Product>()
 
     // --- Lógica de Autenticación (Simulada) ---
+
+    // Suprimimos los warnings porque el ViewModel espera esta firma (suspend, params)
+    @Suppress("RedundantSuspendModifier", "UNUSED_PARAMETER")
     suspend fun login(email: String, password: String): Result<AuthResponse> {
         val fakeUser = User(1, "Usuario Simulado", email, "12345", "Calle Falsa 123")
         val fakeToken = "token_simulado_local_123"
         return Result.success(AuthResponse(true, "Login simulado exitoso", fakeUser, fakeToken))
     }
 
+    @Suppress("RedundantSuspendModifier", "UNUSED_PARAMETER")
     suspend fun register(
         nombre: String,
         email: String,
@@ -37,12 +38,15 @@ object GameLevelRepository {
         return Result.success(AuthResponse(true, "Registro simulado exitoso", fakeUser, fakeToken))
     }
 
+    @Suppress("RedundantSuspendModifier", "UNUSED_PARAMETER", "unused") // 'unused' por si no se usa
     suspend fun getUser(userId: Int, token: String): Result<User> {
         val fakeUser = User(userId, "Usuario Simulado", "test@test.com", "12345", "Calle Falsa 123")
         return Result.success(fakeUser)
     }
 
     // --- Lógica de Productos (100% Local) ---
+
+    // Esta sí usa 'suspend' correctamente (en un futuro) o es simple
     suspend fun getProducts(): Result<List<Product>> {
         return try {
             if (_productCache.isEmpty()) {
@@ -54,6 +58,7 @@ object GameLevelRepository {
         }
     }
 
+    @Suppress("RedundantSuspendModifier")
     suspend fun getProduct(productId: Int): Result<Product> {
         val product = SampleProducts.getProductById(productId)
         return if (product != null) {
@@ -63,6 +68,7 @@ object GameLevelRepository {
         }
     }
 
+    @Suppress("RedundantSuspendModifier", "unused")
     suspend fun getProductsByCategory(category: String): Result<List<Product>> {
         val products = SampleProducts.getProductsByCategory(category)
         return Result.success(products)
@@ -73,6 +79,7 @@ object GameLevelRepository {
         return _localCart.asStateFlow()
     }
 
+    @Suppress("RedundantSuspendModifier", "UNUSED_PARAMETER")
     suspend fun addToCart(productId: Int, quantity: Int, userId: Int, token: String): Result<ApiResponse> {
         val productToAdd = _productCache.find { it.id == productId }
 
@@ -101,6 +108,7 @@ object GameLevelRepository {
         return Result.success(ApiResponse(true, "Producto agregado al carrito local"))
     }
 
+    @Suppress("RedundantSuspendModifier", "UNUSED_PARAMETER")
     suspend fun removeFromCart(itemId: Int, token: String): Result<ApiResponse> {
         _localCart.update { currentCart ->
             currentCart.filterNot { it.id == itemId }
@@ -108,6 +116,7 @@ object GameLevelRepository {
         return Result.success(ApiResponse(true, "Producto eliminado del carrito local"))
     }
 
+    @Suppress("RedundantSuspendModifier")
     suspend fun incrementCartItem(itemId: Int): Result<ApiResponse> {
         _localCart.update { currentCart ->
             currentCart.map {
@@ -121,6 +130,7 @@ object GameLevelRepository {
         return Result.success(ApiResponse(true, "Cantidad incrementada"))
     }
 
+    @Suppress("RedundantSuspendModifier")
     suspend fun decrementCartItem(itemId: Int): Result<ApiResponse> {
         _localCart.update { currentCart ->
             val itemToUpdate = currentCart.find { it.id == itemId }
@@ -140,26 +150,24 @@ object GameLevelRepository {
         return Result.success(ApiResponse(true, "Cantidad decrementada/eliminada"))
     }
 
-    // --- ¡¡¡ESTA ES LA NUEVA FUNCIÓN QUE ESTÁBAMOS AÑADIENDO!!! ---
-    /**
-     * Vacía el carrito local y resetea el contador.
-     */
     fun clearLocalCart() {
         _localCart.value = emptyList()
         cartIdCounter = 0
     }
-    // -----------------------------------------------------------
 
     // --- Lógica de Reseñas (Simulada) ---
+    @Suppress("RedundantSuspendModifier", "UNUSED_PARAMETER")
     suspend fun getProductReviews(productId: Int): Result<List<Review>> {
         return Result.success(emptyList())
     }
 
+    @Suppress("RedundantSuspendModifier", "UNUSED_PARAMETER")
     suspend fun addReview(productId: Int, rating: Int, comment: String, userId: Int, token: String): Result<ApiResponse> {
         return Result.success(ApiResponse(true, "Reseña guardada localmente (simulado)"))
     }
 
     // --- Lógica de Órdenes (Simulada) ---
+    @Suppress("RedundantSuspendModifier", "UNUSED_PARAMETER")
     suspend fun createOrder(userId: Int, items: List<CartItem>, direccion: String, token: String): Result<Order> {
         val fakeOrder = Order(
             id = 1,
@@ -167,12 +175,13 @@ object GameLevelRepository {
             items = items,
             total = items.sumOf { it.subtotal },
             estado = "Procesando (Simulado)",
-            fecha = "2025-10-31",
+            fecha = "2025-11-02",
             direccionEnvio = direccion
         )
         return Result.success(fakeOrder)
     }
 
+    @Suppress("RedundantSuspendModifier", "UNUSED_PARAMETER", "unused")
     suspend fun getUserOrders(userId: Int, token: String): Result<List<Order>> {
         return Result.success(emptyList())
     }
