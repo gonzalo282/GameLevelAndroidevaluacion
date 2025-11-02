@@ -22,17 +22,16 @@ class GameLevelViewModel : ViewModel() {
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
+    // --- ARREGLADO: 'authToken' ahora es 'private' ya que la UI no lo usa ---
     private val _authToken = MutableStateFlow<String?>(null)
-    val authToken: StateFlow<String?> = _authToken.asStateFlow()
+    // val authToken: StateFlow<String?> = _authToken.asStateFlow() // <-- Eliminado
 
     // Products State
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products.asStateFlow()
 
     private val _selectedProduct = MutableStateFlow<Product?>(null)
-    // --- ¡¡¡AQUÍ ESTÁ EL ARREGLO DEL TYPO!!! ---
     val selectedProduct: StateFlow<Product?> = _selectedProduct.asStateFlow()
-    // ------------------------------------------
 
     // Lógica de Categoría (para HomeScreen)
     private val _selectedCategory = MutableStateFlow("Todos")
@@ -121,20 +120,7 @@ class GameLevelViewModel : ViewModel() {
         repository.clearLocalCart()
     }
 
-    // --- Función de Simulación (Guardada para el futuro, pero no se usa en init) ---
-    private fun simularLogin() {
-        val usuarioSimulado = User(
-            id = 99,
-            nombre = "Usuario de Prueba",
-            email = "prueba@gamelevel.com",
-            telefono = "123456789",
-            direccion = "Av. Falsa 123"
-        )
-        val tokenSimulado = "token_falso_para_pruebas_123456789"
-
-        _currentUser.value = usuarioSimulado
-        _authToken.value = tokenSimulado
-    }
+    // --- 'simularLogin' ELIMINADO (Código muerto) ---
 
     // Products Methods
     fun loadProducts() {
@@ -179,23 +165,12 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
-    fun searchProducts(query: String): List<Product> {
-        return _products.value.filter {
-            it.nombre.contains(query, ignoreCase = true) ||
-                    it.descripcion.contains(query, ignoreCase = true)
-        }
-    }
+    // --- 'searchProducts' y 'filterByCategory' ELIMINADOS (Obsoletos) ---
 
-    fun filterByCategory(category: String): List<Product> {
-        return if (category.isEmpty() || category == "Todos") {
-            _products.value
-        } else {
-            _products.value.filter { it.categoria == category }
-        }
-    }
-
+    // --- SECCIÓN DEL CARRITO ---
     fun loadCart() {
-        // ... vacío a propósito
+        // Esta función está vacía a propósito,
+        // porque el Flow reactivo se encarga de todo.
     }
 
     fun addToCart(product: Product, quantity: Int = 1) {
@@ -243,34 +218,73 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
-    private fun updateCartTotal() {
-        // Obsoleto.
+    // --- 'updateCartTotal' ELIMINADO (Obsoleto) ---
+
+    // --- Lógica de Pedidos (Checkout) ---
+    fun createOrder(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val user = _currentUser.value
+            val token = _authToken.value
+            val items = cartItems.value
+
+            if (user == null || token == null || items.isEmpty()) {
+                _errorMessage.value = "Error: No se puede procesar el pedido."
+                _isLoading.value = false
+                return@launch
+            }
+
+            val result = repository.createOrder(
+                userId = user.id,
+                items = items,
+                direccion = user.direccion,
+                token = token
+            )
+
+            result.onSuccess {
+                repository.clearLocalCart()
+                _isLoading.value = false
+                onSuccess()
+            }.onFailure { exception ->
+                _errorMessage.value = exception.message
+                _isLoading.value = false
+            }
+        }
     }
 
+    // Reviews Methods
     fun loadProductReviews(productId: Int) {
         viewModelScope.launch {
+            _isLoading.value = true
             val result = repository.getProductReviews(productId)
             result.onSuccess { reviewsList ->
                 _reviews.value = reviewsList
             }.onFailure { exception ->
                 _errorMessage.value = exception.message
             }
+            _isLoading.value = false
         }
     }
 
+    // --- ARREGLADO: Añadimos @Suppress para la advertencia ---
+    @Suppress("unused")
     fun addReview(productId: Int, rating: Int, comment: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             val user = _currentUser.value
             val token = _authToken.value
 
             if (user != null && token != null) {
+                _isLoading.value = true
                 val result = repository.addReview(productId, rating, comment, user.id, token)
                 result.onSuccess {
-                    loadProductReviews(productId)
+                    loadProductReviews(productId) // Recarga las reseñas
                     onSuccess()
                 }.onFailure { exception ->
                     _errorMessage.value = exception.message
                 }
+                _isLoading.value = false
+            } else {
+                _errorMessage.value = "Debes iniciar sesión para dejar una reseña"
             }
         }
     }

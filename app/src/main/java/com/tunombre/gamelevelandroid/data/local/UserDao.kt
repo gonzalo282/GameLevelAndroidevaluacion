@@ -1,6 +1,7 @@
 package com.tunombre.gamelevelandroid.data.local
 
 
+
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -15,11 +16,10 @@ interface UserDao {
     @Query("SELECT * FROM usuarios WHERE email = :email LIMIT 1")
     suspend fun findByEmail(email: String): UserEntity?
 
-    // Para login: comparar hash de la contraseña
-    @Query("SELECT * FROM usuarios WHERE email = :email AND password_hash = :passwordHash LIMIT 1")
-    suspend fun auth(email: String, passwordHash: String): UserEntity?
-
     @Query("SELECT * FROM usuarios WHERE id = :userId LIMIT 1")
     suspend fun findById(userId: Int): UserEntity?
-}
 
+    // 👉 ESTA FUNCIÓN ES LA QUE NECESITA TU REPOSITORY
+    @Query("SELECT * FROM usuarios WHERE email = :email AND password_hash = :passwordHash LIMIT 1")
+    suspend fun auth(email: String, passwordHash: String): UserEntity?
+}
