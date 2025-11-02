@@ -1,15 +1,19 @@
 package com.tunombre.gamelevelandroid.ui.screens
 
+import android.util.Patterns
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -18,51 +22,63 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
-import com.tunombre.gamelevelandroid.data.repository.GameLevelRepository
-import androidx.compose.ui.platform.LocalContext
-import android.util.Patterns
-import android.widget.Toast
+import android.widget.Toast // <-- Importación para Toasts
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     navController: NavController,
-    viewModel: GameLevelViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: GameLevelViewModel // <-- 1. ACEPTA el ViewModel compartido
 ) {
-    // Inicializa Room al cargar la pantalla
-    val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        GameLevelRepository.init(context)
-    }
+    val context = LocalContext.current // Para los Toasts
 
+    // --- 2. ELIMINADO el LaunchedEffect de init() ---
+    // MainActivity se encarga de esto.
+
+    // --- Estados de Valor ---
+    var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var telefono by remember { mutableStateOf("") }
+    var direccion by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // --- Estados de Error ---
+    var nombreError by remember { mutableStateOf<String?>(null) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var telefonoError by remember { mutableStateOf<String?>(null) }
+    var direccionError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
 
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    // 🔹 Validación de formato de email
-    val emailValido = remember(email) {
-        Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    }
+    val passwordsMatch = password == confirmPassword
 
-    // Si hay error en el ViewModel/Repository, mostrarlo como Toast
+    val isFormValid = nombre.isNotBlank() && email.isNotBlank() &&
+            password.isNotBlank() && confirmPassword.isNotBlank() &&
+            telefono.isNotBlank() && direccion.isNotBlank() &&
+            passwordsMatch &&
+            nombreError == null && emailError == null &&
+            telefonoError == null && direccionError == null &&
+            passwordError == null
+
+    // Muestra errores del ViewModel (ej: "Email ya existe")
     LaunchedEffect(errorMessage) {
         errorMessage?.takeIf { it.isNotBlank() }?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.clearError() // Limpia el error después de mostrarlo
         }
     }
-
-    val isFormValid = emailValido && password.isNotBlank()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Iniciar Sesión") },
+                title = { Text("Registro") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
                     }
                 }
             )
@@ -74,60 +90,144 @@ fun RegisterScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                Icons.Default.Person,
+                Icons.Filled.PersonAdd,
                 contentDescription = null,
-                modifier = Modifier.size(80.dp),
+                modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                "Bienvenido",
+                "Crear Cuenta",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
 
-            Text(
-                "Inicia sesión para continuar",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- CAMPO NOMBRE ---
+            OutlinedTextField(
+                value = nombre,
+                onValueChange = {
+                    nombre = it
+                    nombreError = if (it.isBlank()) {
+                        "El nombre no puede estar vacío"
+                    } else if (it.length < 3) {
+                        "Debe tener al menos 3 caracteres"
+                    } else {
+                        null
+                    }
+                },
+                label = { Text("Nombre Completo") },
+                leadingIcon = { Icon(Icons.Default.Person, null) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                isError = nombreError != null,
+                supportingText = {
+                    if (nombreError != null) Text(nombreError!!)
+                }
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 🔹 Campo de correo con validación de formato
+            // --- CAMPO EMAIL ---
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = {
+                    email = it
+                    emailError = if (it.isBlank()) {
+                        "El email no puede estar vacío"
+                    } else if (!Patterns.EMAIL_ADDRESS.matcher(it).matches()) {
+                        "Debe ser un email válido"
+                    } else {
+                        null
+                    }
+                },
                 label = { Text("Correo Electrónico") },
                 leadingIcon = { Icon(Icons.Default.Email, null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                isError = email.isNotBlank() && !emailValido,
+                isError = emailError != null,
                 supportingText = {
-                    if (email.isNotBlank() && !emailValido) {
-                        Text("Formato de correo inválido")
-                    }
+                    if (emailError != null) Text(emailError!!)
                 }
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
+            // --- CAMPO TELÉFONO ---
+            OutlinedTextField(
+                value = telefono,
+                onValueChange = { newValue ->
+                    if (newValue.all { it.isDigit() } && newValue.length <= 12) {
+                        telefono = newValue
+                        telefonoError = if (newValue.length < 9) {
+                            "Debe tener al menos 9 dígitos"
+                        } else {
+                            null
+                        }
+                    }
+                },
+                label = { Text("Teléfono (Ej: 912345678)") },
+                leadingIcon = { Icon(Icons.Default.Phone, null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                isError = telefonoError != null,
+                supportingText = {
+                    if (telefonoError != null) Text(telefonoError!!)
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // --- CAMPO DIRECCIÓN ---
+            OutlinedTextField(
+                value = direccion,
+                onValueChange = {
+                    direccion = it
+                    direccionError = if (it.isBlank()) {
+                        "La dirección no puede estar vacía"
+                    } else if (it.length < 5) {
+                        "Debe tener al menos 5 caracteres"
+                    } else {
+                        null
+                    }
+                },
+                label = { Text("Dirección") },
+                leadingIcon = { Icon(Icons.Default.Home, null) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                isError = direccionError != null,
+                supportingText = {
+                    if (direccionError != null) Text(direccionError!!)
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // --- CAMPO CONTRASEÑA ---
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = {
+                    password = it
+                    passwordError = if (it.length < 6) {
+                        "Debe tener al menos 6 caracteres"
+                    } else {
+                        null
+                    }
+                },
                 label = { Text("Contraseña") },
                 leadingIcon = { Icon(Icons.Default.Lock, null) },
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
-                            if (passwordVisible) Icons.Default.Star else Icons.Default.Star,
+                            if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                             "Mostrar contraseña"
                         )
                     }
@@ -136,26 +236,41 @@ fun RegisterScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                isError = password.isNotBlank() && password.length < 4,
+                isError = passwordError != null,
                 supportingText = {
-                    if (password.isNotBlank() && password.length < 4) {
-                        Text("La contraseña debe tener al menos 4 caracteres")
+                    if (passwordError != null) Text(passwordError!!)
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // --- CAMPO CONFIRMAR CONTRASEÑA ---
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Confirmar Contraseña") },
+                leadingIcon = { Icon(Icons.Default.Lock, null) },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                isError = confirmPassword.isNotBlank() && !passwordsMatch,
+                supportingText = {
+                    if (confirmPassword.isNotBlank() && !passwordsMatch) {
+                        Text("Las contraseñas no coinciden")
                     }
                 }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🔹 Botón solo activo si los campos son válidos
+            // --- Botón de Registrarse ---
             Button(
                 onClick = {
-                    viewModel.login(email, password) {
-                        Toast.makeText(
-                            context,
-                            "Registro exitoso ",
-                            Toast.LENGTH_LONG
-                        ).show()
-
+                    // Llama a la función de registro
+                    viewModel.register(nombre, email, password, telefono, direccion) {
+                        // Esto es el 'onSuccess'
+                        Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()
                         navController.navigate(Screen.Catalog.route) {
                             popUpTo(Screen.Home.route) { inclusive = false }
                         }
@@ -164,7 +279,7 @@ fun RegisterScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = !isLoading && isFormValid
+                enabled = !isLoading && isFormValid // Se activa solo si todo es válido
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -172,14 +287,16 @@ fun RegisterScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("Iniciar Sesión", style = MaterialTheme.typography.titleMedium)
+                    Text("Registrarse", style = MaterialTheme.typography.titleMedium)
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            TextButton(onClick = { navController.navigate(Screen.Register.route) }) {
-                Text("¿No tienes cuenta? Regístrate aquí")
+            TextButton(
+                onClick = { navController.popBackStack() } // Vuelve a Login
+            ) {
+                Text("¿Ya tienes cuenta? Inicia sesión")
             }
         }
     }

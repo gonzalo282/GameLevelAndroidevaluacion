@@ -6,6 +6,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack // Icono Corregido
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
-import com.tunombre.gamelevelandroid.data.repository.GameLevelRepository
+// import com.tunombre.gamelevelandroid.data.repository.GameLevelRepository // <-- Ya no es necesario
 import androidx.compose.ui.platform.LocalContext
 import android.util.Patterns
 import android.widget.Toast
@@ -29,11 +30,11 @@ fun LoginScreen(
     navController: NavController,
     viewModel: GameLevelViewModel
 ) {
-    // Inicializa Room al cargar la pantalla
-    val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        GameLevelRepository.init(context)
-    }
+    val context = LocalContext.current // Lo mantenemos para los Toasts
+
+    // --- ¡¡¡BLOQUE 'LaunchedEffect' ELIMINADO!!! ---
+    // Ya no es necesario, MainActivity se encarga de esto.
+    // ----------------------------------------------
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -42,7 +43,6 @@ fun LoginScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    // 🔹 Validación de formato de email
     val emailValido = remember(email) {
         Patterns.EMAIL_ADDRESS.matcher(email).matches()
     }
@@ -51,10 +51,11 @@ fun LoginScreen(
     LaunchedEffect(errorMessage) {
         errorMessage?.takeIf { it.isNotBlank() }?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.clearError() // Limpiamos el error después de mostrarlo
         }
     }
 
-    val isFormValid = emailValido && password.isNotBlank()
+    val isFormValid = emailValido && password.length >= 4 // Usamos la misma lógica del campo
 
     Scaffold(
         topBar = {
@@ -62,7 +63,7 @@ fun LoginScreen(
                 title = { Text("Iniciar Sesión") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver") // Icono Corregido
                     }
                 }
             )
@@ -100,7 +101,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 🔹 Campo de correo con validación de formato
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -127,7 +127,7 @@ fun LoginScreen(
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
-                            if (passwordVisible) Icons.Default.Star else Icons.Default.Star,
+                            if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff, // Iconos Corregidos
                             "Mostrar contraseña"
                         )
                     }
@@ -146,14 +146,14 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🔹 Botón solo activo si los campos son válidos
             Button(
                 onClick = {
                     viewModel.login(email, password) {
+                        // El 'onSuccess' del ViewModel se llama si el login es exitoso
                         Toast.makeText(
                             context,
-                            "Usuario logueado",
-                            Toast.LENGTH_LONG
+                            "¡Bienvenido de vuelta!",
+                            Toast.LENGTH_SHORT
                         ).show()
 
                         navController.navigate(Screen.Catalog.route) {
