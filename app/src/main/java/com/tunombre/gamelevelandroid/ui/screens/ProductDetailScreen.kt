@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,254 +19,195 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
+import com.tunombre.gamelevelandroid.navigation.Screen
 import com.tunombre.gamelevelandroid.utils.ImageLoader
+import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductDetailScreen(
     navController: NavController,
     productId: Int,
-    viewModel: GameLevelViewModel) {
+    viewModel: GameLevelViewModel // Recibe el ViewModel compartido
+) {
     val context = LocalContext.current
+
+    // Observamos el producto seleccionado desde el ViewModel
     val product by viewModel.selectedProduct.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    var quantity by remember { mutableStateOf(1) }
-    
+    val cartItemCount by viewModel.cartItemCount.collectAsState()
+
+    // Cargamos el producto al entrar a la pantalla
     LaunchedEffect(productId) {
         viewModel.loadProduct(productId)
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Detalle del Producto") },
+                title = { Text(product?.nombre ?: "Detalle del Producto") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
+                        // Usamos el icono correcto (AutoMirrored)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* Compartir */ }) {
-                        Icon(Icons.Default.Share, "Compartir")
+                    // Ícono del carrito con contador (Badge)
+                    IconButton(onClick = { navController.navigate(Screen.Cart.route) }) {
+                        BadgedBox(
+                            badge = {
+                                if (cartItemCount > 0) {
+                                    Badge { Text("$cartItemCount") }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Filled.ShoppingCart, "Carrito")
+                        }
                     }
                 }
             )
         }
     ) { paddingValues ->
-        if (isLoading || product == null) {
+        // Si el producto es nulo (cargando o error), mostramos un loader
+        if (product == null) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
         } else {
-            val currentProduct = product!!
-            
+            // Si hay producto, mostramos el contenido
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
             ) {
-                // Imagen del producto
-                Card(
+                // 1. Imagen del Producto (Grande)
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp),
-                    border = androidx.compose.foundation.BorderStroke(3.dp, MaterialTheme.colorScheme.secondary)
+                        .height(300.dp)
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (currentProduct.imagen.isNotBlank()) {
-                            AsyncImage(
-                                model = if (ImageLoader.isLocalImage(currentProduct.imagen)) {
-                                    ImageLoader.getDrawableResourceId(context, currentProduct.imagen)
-                                } else {
-                                    currentProduct.imagen
-                                },
-                                contentDescription = currentProduct.nombre,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.Star,
-                                contentDescription = null,
-                                modifier = Modifier.size(120.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    
-                    if (currentProduct.descuento > 0) {
-                        Surface(
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .size(60.dp),
-                            shape = MaterialTheme.shapes.medium,
-                            color = MaterialTheme.colorScheme.error
+                    if (product!!.imagen.isNotBlank()) {
+                        AsyncImage(
+                            model = if (ImageLoader.isLocalImage(product!!.imagen)) {
+                                ImageLoader.getDrawableResourceId(context, product!!.imagen)
+                            } else {
+                                product!!.imagen
+                            },
+                            contentDescription = product!!.nombre,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // Placeholder si no hay imagen
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    "-${currentProduct.descuento.toInt()}%",
-                                    color = MaterialTheme.colorScheme.onError,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            Icon(
+                                Icons.Filled.Star,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
                         }
                     }
                 }
-                
+
+                // 2. Información del Producto
                 Column(
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(24.dp)
                 ) {
-                    // Nombre y categoría
+                    // Categoría
+                    AssistChip(
+                        onClick = { },
+                        label = { Text(product!!.categoria) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Nombre
                     Text(
-                        currentProduct.nombre,
+                        text = product!!.nombre,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Text(
-                            currentProduct.categoria,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Precio
+
+                    // Precio y Descuento
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (currentProduct.descuento > 0) {
+                        if (product!!.descuento > 0) {
                             Text(
-                                "$${currentProduct.precio}",
-                                style = MaterialTheme.typography.titleLarge,
+                                text = "$${product!!.precio}",
+                                style = MaterialTheme.typography.titleMedium,
                                 textDecoration = TextDecoration.LineThrough,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                "$${currentProduct.precioFinal}",
+                                text = "$${String.format(Locale.US, "%.2f", product!!.precioFinal)}",
                                 style = MaterialTheme.typography.headlineLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ) {
+                                Text("-${product!!.descuento.toInt()}%", modifier = Modifier.padding(4.dp))
+                            }
                         } else {
                             Text(
-                                "$${currentProduct.precio}",
+                                text = "$${product!!.precio}",
                                 style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Stock
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            if (currentProduct.stock > 0) Icons.Default.Check else Icons.Default.Close,
-                            contentDescription = null,
-                            tint = if (currentProduct.stock > 0) 
-                                MaterialTheme.colorScheme.primary 
-                            else 
-                                MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (currentProduct.stock > 0) 
-                                "En Stock (${currentProduct.stock} disponibles)" 
-                            else 
-                                "Sin Stock",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                    
+
                     Spacer(modifier = Modifier.height(24.dp))
-                    
-                    Divider()
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Descripción
                     Text(
-                        "Descripción",
+                        text = "Descripción",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    
                     Spacer(modifier = Modifier.height(8.dp))
-                    
                     Text(
-                        currentProduct.descripcion,
-                        style = MaterialTheme.typography.bodyLarge
+                        text = product!!.descripcion,
+                        style = MaterialTheme.typography.bodyLarge,
+                        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.5
                     )
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Selector de cantidad
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            "Cantidad:",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(
-                                onClick = { if (quantity > 1) quantity-- }
-                            ) {
-                                Icon(Icons.Default.Clear, "Disminuir")
-                            }
-                            
-                            Text(
-                                quantity.toString(),
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                            
-                            IconButton(
-                                onClick = { 
-                                    if (quantity < currentProduct.stock) quantity++ 
-                                }
-                            ) {
-                                Icon(Icons.Default.Add, "Aumentar")
-                            }
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Botón agregar al carrito
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // Botón Agregar al Carrito
                     Button(
                         onClick = {
-                            viewModel.addToCart(currentProduct, quantity)
-                            navController.popBackStack()
+                            // Llamamos a la función del ViewModel
+                            viewModel.addToCart(product!!)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        enabled = currentProduct.stock > 0
+                        enabled = product!!.stock > 0
                     ) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = null)
+                        Icon(Icons.Filled.Add, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "Agregar al Carrito",
+                            if (product!!.stock > 0) "Agregar al Carrito" else "Sin Stock",
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
