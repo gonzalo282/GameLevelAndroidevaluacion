@@ -6,13 +6,14 @@ import com.tunombre.gamelevelandroid.data.local.SampleProducts
 import com.tunombre.gamelevelandroid.data.local.UserDao
 import com.tunombre.gamelevelandroid.data.local.UserEntity
 import com.tunombre.gamelevelandroid.data.model.*
-import java.security.MessageDigest
+import com.tunombre.gamelevelandroid.data.remote.ExternalApiClient // <-- Importación Nueva
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import java.security.MessageDigest
 
-// Respuesta simple para acciones locales (carrito, etc.)
+// Respuesta simple para acciones locales
 data class ApiResponse(val success: Boolean, val message: String)
 
 object GameLevelRepository {
@@ -34,29 +35,20 @@ object GameLevelRepository {
         return bytes.joinToString("") { "%02x".format(it) }
     }
 
-    // LOGIN: valida email + contraseña (hash) en Room
     suspend fun login(email: String, password: String): Result<AuthResponse> {
         val dao = userDao ?: return Result.failure(
             IllegalStateException("DB no inicializada. Llama a GameLevelRepository.init(context).")
         )
-
         val entity = dao.auth(email.trim(), sha256(password))
         return if (entity != null) {
-            val user = User(
-                id = entity.id,
-                nombre = entity.nombre,
-                email = entity.email,
-                telefono = entity.telefono,
-                direccion = entity.direccion
-            )
-            val token = "token_local_${user.id}_${System.currentTimeMillis()}"
+            val user = User(entity.id, entity.nombre, entity.email, entity.telefono, entity.direccion)
+            val token = "token_local_${user.id}"
             Result.success(AuthResponse(true, "Login exitoso", user, token))
         } else {
             Result.success(AuthResponse(false, "Correo o contraseña inválidos", null, null))
         }
     }
 
-    // REGISTER: inserta en Room si el email no existe
     suspend fun register(
         nombre: String,
         email: String,
@@ -67,7 +59,6 @@ object GameLevelRepository {
         val dao = userDao ?: return Result.failure(
             IllegalStateException("DB no inicializada. Llama a GameLevelRepository.init(context).")
         )
-
         val emailTrim = email.trim()
         val existente = dao.findByEmail(emailTrim)
         if (existente != null) {
@@ -99,7 +90,6 @@ object GameLevelRepository {
         return Result.success(AuthResponse(true, "Registro exitoso", user, token))
     }
 
-    // GET USER: obtiene desde Room por id
     suspend fun getUser(userId: Int, token: String): Result<User> {
         val dao = userDao ?: return Result.failure(
             IllegalStateException("DB no inicializada. Llama a GameLevelRepository.init(context).")
@@ -109,7 +99,25 @@ object GameLevelRepository {
         val user = User(entity.id, entity.nombre, entity.email, entity.telefono, entity.direccion)
         return Result.success(user)
     }
-    // ---------------------------------------------------------
+
+    // -------------------- API EXTERNA (¡NUEVO!) ------------------
+    /**
+     * Obtiene juegos desde la API externa (FreeToGame).
+     * Esto cumple el requisito de integración de API externa.
+     */
+    suspend fun getExternalGames(): Result<List<ExternalGame>> {
+        return try {
+            // Llamamos a la API real
+            val games = ExternalApiClient.service.getPopularGames()
+            // Tomamos solo los primeros 10 para no saturar la UI
+            Result.success(games.take(10))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Si falla (ej. sin internet), devolvemos error pero la app sigue funcionando
+            Result.failure(e)
+        }
+    }
+    // -------------------------------------------------------------
 
     // -------------------- Productos (local) ------------------
     private val _localCart = MutableStateFlow<List<CartItem>>(emptyList())
@@ -137,7 +145,6 @@ object GameLevelRepository {
         val products = SampleProducts.getProductsByCategory(category)
         return Result.success(products)
     }
-    // ---------------------------------------------------------
 
     // -------------------- Carrito (local) --------------------
     fun getCartFlow(): Flow<List<CartItem>> = _localCart.asStateFlow()
@@ -187,14 +194,12 @@ object GameLevelRepository {
         return Result.success(ApiResponse(true, "Cantidad decrementada/eliminada"))
     }
 
-    /** Vacía el carrito local y resetea el contador. */
     fun clearLocalCart() {
         _localCart.value = emptyList()
         cartIdCounter = 0
     }
-    // ---------------------------------------------------------
 
-    // -------------------- Reseñas/Órdenes (simulado) --------
+    // -------------------- Simulados ------------------------
     suspend fun getProductReviews(productId: Int): Result<List<Review>> =
         Result.success(emptyList())
 
@@ -216,5 +221,4 @@ object GameLevelRepository {
 
     suspend fun getUserOrders(userId: Int, token: String): Result<List<Order>> =
         Result.success(emptyList())
-    // ---------------------------------------------------------
 }

@@ -23,16 +23,19 @@ class GameLevelViewModel : ViewModel() {
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
     private val _authToken = MutableStateFlow<String?>(null)
-    // val authToken: StateFlow<String?> = _authToken.asStateFlow() // Privado
 
-    // Products State
+    // Products State (Local)
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products.asStateFlow()
+
+    // --- ¡¡¡NUEVO!!! ESTADO API EXTERNA ---
+    private val _externalGames = MutableStateFlow<List<ExternalGame>>(emptyList())
+    val externalGames: StateFlow<List<ExternalGame>> = _externalGames.asStateFlow()
+    // --------------------------------------
 
     private val _selectedProduct = MutableStateFlow<Product?>(null)
     val selectedProduct: StateFlow<Product?> = _selectedProduct.asStateFlow()
 
-    // Lógica de Categoría (para HomeScreen)
     private val _selectedCategory = MutableStateFlow("Todos")
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
@@ -60,7 +63,6 @@ class GameLevelViewModel : ViewModel() {
         initialValue = 0
     )
 
-    // El resto de tus variables de estado
     private val _reviews = MutableStateFlow<List<Review>>(emptyList())
     val reviews: StateFlow<List<Review>> = _reviews.asStateFlow()
     private val _isLoading = MutableStateFlow(false)
@@ -135,6 +137,7 @@ class GameLevelViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
 
+            // 1. Cargar productos locales
             val result = repository.getProducts()
             result.onSuccess { productList ->
                 _products.value = productList
@@ -145,9 +148,27 @@ class GameLevelViewModel : ViewModel() {
                 _errorMessage.value = "Modo sin conexión - Mostrando productos de ejemplo"
             }
 
+            // 2. Cargar Juegos Externos (API)
+            // Esto se ejecuta en paralelo o secuencial, no bloquea lo local
+            loadExternalGames()
+
             _isLoading.value = false
         }
     }
+
+    // --- ¡¡¡NUEVA FUNCIÓN!!! Cargar API Externa ---
+    private fun loadExternalGames() {
+        viewModelScope.launch {
+            val result = repository.getExternalGames()
+            result.onSuccess { games ->
+                _externalGames.value = games
+            }.onFailure {
+                // Si falla la API externa, no rompemos la app, solo no mostramos nada
+                println("Error cargando API externa: ${it.message}")
+            }
+        }
+    }
+    // ----------------------------------------------
 
     fun setCategoryFilter(category: String) {
         _selectedCategory.value = category
@@ -164,9 +185,7 @@ class GameLevelViewModel : ViewModel() {
                 result.onSuccess { product ->
                     _selectedProduct.value = product
                 }.onFailure { exception ->
-                    // --- ¡¡¡AQUÍ ESTÁ EL ARREGLO!!! ---
                     _selectedProduct.value = SampleProducts.getProductById(productId)
-                    // ---------------------------------
                     _errorMessage.value = exception.message
                 }
             }
@@ -175,11 +194,22 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
-    // --- SECCIÓN DEL CARRITO ---
-    fun loadCart() {
-        // Esta función está vacía a propósito,
-        // porque el Flow reactivo se encarga de todo.
+    fun searchProducts(query: String): List<Product> {
+        return _products.value.filter {
+            it.nombre.contains(query, ignoreCase = true) ||
+                    it.descripcion.contains(query, ignoreCase = true)
+        }
     }
+    fun filterByCategory(category: String): List<Product> {
+        return if (category.isEmpty() || category == "Todos") {
+            _products.value
+        } else {
+            _products.value.filter { it.categoria == category }
+        }
+    }
+
+    // --- SECCIÓN DEL CARRITO ---
+    fun loadCart() { }
 
     fun addToCart(product: Product, quantity: Int = 1) {
         viewModelScope.launch {
@@ -282,7 +312,7 @@ class GameLevelViewModel : ViewModel() {
                 _isLoading.value = true
                 val result = repository.addReview(productId, rating, comment, user.id, token)
                 result.onSuccess {
-                    loadProductReviews(productId) // Recarga las reseñas
+                    loadProductReviews(productId)
                     onSuccess()
                 }.onFailure { exception ->
                     _errorMessage.value = exception.message
