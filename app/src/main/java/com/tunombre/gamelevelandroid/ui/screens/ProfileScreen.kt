@@ -1,10 +1,12 @@
 package com.tunombre.gamelevelandroid.ui.screens
 
+import android.Manifest // <-- IMPORTANTE
+import android.content.pm.PackageManager // <-- IMPORTANTE
 import android.net.Uri
+import android.widget.Toast // <-- Para avisar si niegan el permiso
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,11 +18,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat // <-- IMPORTANTE
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import com.tunombre.gamelevelandroid.navigation.Screen
-import com.tunombre.gamelevelandroid.ui.components.ImagenInteligente // <-- Importación Nueva
+import com.tunombre.gamelevelandroid.ui.components.ImagenInteligente
 import com.tunombre.gamelevelandroid.viewmodel.GameLevelViewModel
 import java.io.File
 import java.text.SimpleDateFormat
@@ -34,47 +38,59 @@ fun ProfileScreen(
     viewModel: GameLevelViewModel
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
-    val profileImageUri by viewModel.profileImageUri.collectAsState() // <-- Escuchamos la foto
+    val profileImageUri by viewModel.profileImageUri.collectAsState()
     val context = LocalContext.current
 
-    // --- 1. Lógica para crear archivo temporal para la cámara ---
+    // --- 1. Lógica para crear archivo temporal ---
     var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
     fun createTempPictureUri(): Uri {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val imageFileName = "JPEG_" + timeStamp + "_"
-
-        // Crea el archivo en la carpeta de caché que definimos en file_paths.xml
-        val image = File.createTempFile(
-            imageFileName,
-            ".jpg",
-            context.externalCacheDir
-        )
-
-        // Obtiene el URI seguro usando el FileProvider
+        val image = File.createTempFile(imageFileName, ".jpg", context.cacheDir)
         return FileProvider.getUriForFile(
             context,
-            context.packageName + ".fileprovider", // Debe coincidir con AndroidManifest
+            context.packageName + ".fileprovider",
             image
         )
     }
 
-    // --- 2. Lanzador de Cámara ---
+    // --- 2. Lanzadores (Resultados de Actividad) ---
+
+    // A. Lanzador de la Cámara (Toma la foto)
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && tempPhotoUri != null) {
-            // Si la foto se tomó con éxito, actualizamos el ViewModel
             viewModel.updateProfileImage(tempPhotoUri!!)
         }
     }
 
-    // --- 3. Lanzador de Galería ---
+    // B. Función auxiliar para abrir la cámara (evita repetir código)
+    fun abrirCamara() {
+        val uri = createTempPictureUri()
+        tempPhotoUri = uri
+        cameraLauncher.launch(uri)
+    }
+
+    // C. ¡NUEVO! Lanzador de Permisos (Pide permiso al usuario)
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Si el usuario dice "Sí", abrimos la cámara
+            abrirCamara()
+        } else {
+            // Si dice "No", mostramos un mensaje
+            Toast.makeText(context, "Se requiere permiso de cámara para tomar fotos", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // D. Lanzador de Galería (No requiere permiso en versiones modernas para GetContent)
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            // Si se seleccionó una imagen, actualizamos el ViewModel
             viewModel.updateProfileImage(uri)
         }
     }
@@ -115,7 +131,6 @@ fun ProfileScreen(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // --- Header con Foto de Perfil ---
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
@@ -125,12 +140,10 @@ fun ProfileScreen(
                         modifier = Modifier.padding(24.dp).fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // --- AQUI MOSTRAMOS LA IMAGEN INTELIGENTE ---
                         ImagenInteligente(model = profileImageUri)
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // --- BOTONES DE FOTO ---
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             // Botón Galería
                             Button(onClick = {
@@ -141,21 +154,30 @@ fun ProfileScreen(
                                 Text("Galería")
                             }
 
-                            // Botón Cámara
+                            // --- ¡¡¡BOTÓN CÁMARA ACTUALIZADO!!! ---
                             Button(onClick = {
-                                // Creamos el URI temporal antes de lanzar la cámara
-                                val uri = createTempPictureUri()
-                                tempPhotoUri = uri
-                                cameraLauncher.launch(uri)
+                                // 1. Verificamos si YA tenemos permiso
+                                val permissionCheck = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.CAMERA
+                                )
+
+                                if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+                                    // Si ya lo tenemos, abrir directo
+                                    abrirCamara()
+                                } else {
+                                    // Si no, pedirlo (esto muestra el popup del sistema)
+                                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
                             }) {
                                 Icon(Icons.Default.CameraAlt, null)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Cámara")
                             }
+                            // --------------------------------------
                         }
-                        // ----------------------
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
                             currentUser!!.nombre,
@@ -172,17 +194,12 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Información del perfil
-                Text("Información Personal", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(16.dp))
-
                 ProfileInfoItem(Icons.Default.Phone, "Teléfono", currentUser!!.telefono)
                 ProfileInfoItem(Icons.Default.Home, "Dirección", currentUser!!.direccion)
                 ProfileInfoItem(Icons.Default.Email, "Email", currentUser!!.email)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Botón cerrar sesión
                 Button(
                     onClick = {
                         viewModel.logout()
