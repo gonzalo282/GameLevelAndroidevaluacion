@@ -12,13 +12,14 @@ import retrofit2.http.POST
 interface SpringApiService {
 
     // --- AUTENTICACIÓN ---
-    @POST("/api/auth/login")
+    // Cambio: "api/..." en lugar de "/api/..."
+    @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
 
-    @POST("/api/auth/register")
+    @POST("api/auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
 
     // --- PRODUCTOS ---
-    @GET("/api/products")
+    @GET("api/products")
     suspend fun getProducts(): Response<List<Product>>
 }

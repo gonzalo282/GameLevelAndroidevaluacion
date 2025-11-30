@@ -8,7 +8,7 @@ data class Product(
     val stock: Int,
     val categoria: String,
     val imagen: String,
-    val descuento: Double = 0.0
+    val descuento: Double
 ) {
     val precioFinal: Double
         get() = precio * (1 - descuento / 100)
