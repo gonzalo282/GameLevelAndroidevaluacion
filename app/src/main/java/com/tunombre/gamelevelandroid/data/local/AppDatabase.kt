@@ -7,7 +7,8 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [UserEntity::class],
-    version = 1,
+    // Subimos la versión a 2 para forzar el cambio
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -22,7 +23,12 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "gamelevel.db"
-                ).build().also { INSTANCE = it }
+                )
+                    // --- ¡AQUÍ ESTÁ EL ARREGLO! ---
+                    // Esto borra la base de datos vieja si cambia la versión
+                    .fallbackToDestructiveMigration()
+                    // -----------------------------
+                    .build().also { INSTANCE = it }
             }
         }
     }
