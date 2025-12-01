@@ -22,4 +22,8 @@ interface UserDao {
     // 👉 ESTA FUNCIÓN ES LA QUE NECESITA TU REPOSITORY
     @Query("SELECT * FROM usuarios WHERE email = :email AND password_hash = :passwordHash LIMIT 1")
     suspend fun auth(email: String, passwordHash: String): UserEntity?
+
+    // --- ¡NUEVO! Actualizar solo la foto ---
+    @Query("UPDATE usuarios SET foto_perfil = :fotoUri WHERE id = :userId")
+    suspend fun updateFotoPerfil(userId: Int, fotoUri: String)
 }

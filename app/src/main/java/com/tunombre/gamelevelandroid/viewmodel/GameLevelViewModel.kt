@@ -1,6 +1,6 @@
 package com.tunombre.gamelevelandroid.viewmodel
 
-import android.net.Uri // <-- Importante
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tunombre.gamelevelandroid.data.model.*
@@ -25,12 +25,20 @@ class GameLevelViewModel : ViewModel() {
 
     private val _authToken = MutableStateFlow<String?>(null)
 
-    // --- ¡¡¡NUEVO!!! Estado para la Foto de Perfil ---
+    // --- Foto de Perfil (Gestión y Persistencia) ---
     private val _profileImageUri = MutableStateFlow<Uri?>(null)
     val profileImageUri: StateFlow<Uri?> = _profileImageUri.asStateFlow()
 
     fun updateProfileImage(uri: Uri) {
         _profileImageUri.value = uri
+
+        // Guardar en la base de datos si el usuario está logueado
+        val user = _currentUser.value
+        if (user != null) {
+            viewModelScope.launch {
+                repository.guardarFotoPerfil(user.id, uri.toString())
+            }
+        }
     }
     // -------------------------------------------------
 
@@ -41,39 +49,23 @@ class GameLevelViewModel : ViewModel() {
     private val _selectedProduct = MutableStateFlow<Product?>(null)
     val selectedProduct: StateFlow<Product?> = _selectedProduct.asStateFlow()
 
-    // --- Lógica de Categoría ---
     private val _selectedCategory = MutableStateFlow("Todos")
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
-    // --- API Externa ---
     private val _externalGames = MutableStateFlow<List<ExternalGame>>(emptyList())
     val externalGames: StateFlow<List<ExternalGame>> = _externalGames.asStateFlow()
 
-    // --- SECCIÓN DEL CARRITO ---
+    // --- Carrito State ---
     val cartItems: StateFlow<List<CartItem>> = repository.getCartFlow()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = emptyList()
-        )
+        .stateIn(scope = viewModelScope, started = SharingStarted.Eagerly, initialValue = emptyList())
 
-    val cartTotal: StateFlow<Double> = cartItems.map { items ->
-        items.sumOf { it.subtotal }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = 0.0
-    )
+    val cartTotal: StateFlow<Double> = cartItems.map { items -> items.sumOf { it.subtotal } }
+        .stateIn(scope = viewModelScope, started = SharingStarted.Eagerly, initialValue = 0.0)
 
-    val cartItemCount: StateFlow<Int> = cartItems.map { items ->
-        items.sumOf { it.quantity }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = 0
-    )
+    val cartItemCount: StateFlow<Int> = cartItems.map { items -> items.sumOf { it.quantity } }
+        .stateIn(scope = viewModelScope, started = SharingStarted.Eagerly, initialValue = 0)
 
-    // --- Otros Estados ---
+    // --- Feedback State ---
     private val _reviews = MutableStateFlow<List<Review>>(emptyList())
     val reviews: StateFlow<List<Review>> = _reviews.asStateFlow()
     private val _isLoading = MutableStateFlow(false)
@@ -88,11 +80,24 @@ class GameLevelViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
+
             val result = repository.login(email, password)
             result.onSuccess { response ->
-                if (response.success) {
+                if (response.success && response.user != null) {
                     _currentUser.value = response.user
                     _authToken.value = response.token
+
+                    // Recuperamos la foto guardada
+                    if (response.user.fotoPerfil != null) {
+                        try {
+                            _profileImageUri.value = Uri.parse(response.user.fotoPerfil)
+                        } catch (e: Exception) {
+                            _profileImageUri.value = null
+                        }
+                    } else {
+                        _profileImageUri.value = null
+                    }
+
                     onSuccess()
                 } else {
                     _errorMessage.value = response.message
@@ -100,6 +105,7 @@ class GameLevelViewModel : ViewModel() {
             }.onFailure { exception ->
                 _errorMessage.value = exception.message ?: "Error de conexión"
             }
+
             _isLoading.value = false
         }
     }
@@ -108,11 +114,13 @@ class GameLevelViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
+
             val result = repository.register(nombre, email, password, telefono, direccion)
             result.onSuccess { response ->
                 if (response.success) {
                     _currentUser.value = response.user
                     _authToken.value = response.token
+                    _profileImageUri.value = null // Empieza sin foto
                     onSuccess()
                 } else {
                     _errorMessage.value = response.message
@@ -120,6 +128,7 @@ class GameLevelViewModel : ViewModel() {
             }.onFailure { exception ->
                 _errorMessage.value = exception.message ?: "Error de conexión"
             }
+
             _isLoading.value = false
         }
     }
@@ -127,7 +136,7 @@ class GameLevelViewModel : ViewModel() {
     fun logout() {
         _currentUser.value = null
         _authToken.value = null
-        _profileImageUri.value = null // Limpiamos la foto al salir
+        _profileImageUri.value = null
         repository.clearLocalCart()
     }
 
@@ -190,7 +199,7 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
-    // --- Carrito ---
+    // --- Carrito Methods ---
     fun loadCart() { }
 
     fun addToCart(product: Product, quantity: Int = 1) {
@@ -244,10 +253,10 @@ class GameLevelViewModel : ViewModel() {
         }
     }
 
-    // --- Reviews y Misc ---
-    fun loadProductReviews(productId: Int) { /* Pendiente */ }
+    // --- Reviews / Misc ---
+    fun loadProductReviews(productId: Int) { }
     @Suppress("unused")
-    fun addReview(productId: Int, rating: Int, comment: String, onSuccess: () -> Unit) { /* Pendiente */ }
+    fun addReview(productId: Int, rating: Int, comment: String, onSuccess: () -> Unit) { }
     fun clearError() { _errorMessage.value = null }
     fun clearSuccessMessage() { _successMessage.value = null }
 }

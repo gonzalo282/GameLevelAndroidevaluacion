@@ -7,7 +7,7 @@ import com.tunombre.gamelevelandroid.data.local.UserDao
 import com.tunombre.gamelevelandroid.data.local.UserEntity
 import com.tunombre.gamelevelandroid.data.model.*
 import com.tunombre.gamelevelandroid.data.remote.ExternalApiClient
-import com.tunombre.gamelevelandroid.data.remote.SpringClient // <-- Importación Nueva
+import com.tunombre.gamelevelandroid.data.remote.SpringClient
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,7 +43,15 @@ object GameLevelRepository {
         )
         val entity = dao.auth(email.trim(), sha256(password))
         return if (entity != null) {
-            val user = User(entity.id, entity.nombre, entity.email, entity.telefono, entity.direccion)
+            // Mapeamos el usuario incluyendo la foto de perfil
+            val user = User(
+                id = entity.id,
+                nombre = entity.nombre,
+                email = entity.email,
+                telefono = entity.telefono,
+                direccion = entity.direccion,
+                fotoPerfil = entity.fotoPerfil // <-- Recuperamos la foto
+            )
             val token = "token_local_${user.id}"
             Result.success(AuthResponse(true, "Login exitoso", user, token))
         } else {
@@ -73,7 +81,8 @@ object GameLevelRepository {
             email = emailTrim,
             telefono = telefono.trim(),
             direccion = direccion.trim(),
-            passwordHash = sha256(password)
+            passwordHash = sha256(password),
+            fotoPerfil = null // Al registrarse no hay foto
         )
 
         val newId = dao.insert(entity).toInt()
@@ -82,9 +91,14 @@ object GameLevelRepository {
         val created = dao.findById(newId)
             ?: return Result.failure(IllegalStateException("Usuario insertado pero no recuperado"))
 
-        val user = User(created.id, created.nombre, created.email, created.telefono, created.direccion)
+        val user = User(created.id, created.nombre, created.email, created.telefono, created.direccion, null, created.fotoPerfil)
         val token = "token_local_${user.id}"
         return Result.success(AuthResponse(true, "Registro exitoso", user, token))
+    }
+
+    // --- Guardar Foto en BD ---
+    suspend fun guardarFotoPerfil(userId: Int, uri: String) {
+        userDao?.updateFotoPerfil(userId, uri)
     }
 
     @Suppress("RedundantSuspendModifier")
@@ -94,7 +108,7 @@ object GameLevelRepository {
         )
         val entity = dao.findById(userId)
             ?: return Result.failure(NoSuchElementException("Usuario no encontrado"))
-        val user = User(entity.id, entity.nombre, entity.email, entity.telefono, entity.direccion)
+        val user = User(entity.id, entity.nombre, entity.email, entity.telefono, entity.direccion, null, entity.fotoPerfil)
         return Result.success(user)
     }
 
@@ -116,15 +130,14 @@ object GameLevelRepository {
 
     suspend fun getProducts(): Result<List<Product>> {
         return try {
-            // 1. Intentamos conectar con Spring Boot
+            // Intentamos conectar con Spring Boot
             val response = SpringClient.service.getProducts()
 
             if (response.isSuccessful && response.body() != null) {
-                // Si hay éxito, usamos los datos del servidor
                 _productCache = response.body()!!
                 Result.success(_productCache)
             } else {
-                // Si el servidor responde error, usamos caché local
+                // Fallback local si el servidor responde error
                 println("Spring Boot Error: ${response.code()}. Usando local.")
                 if (_productCache.isEmpty()) {
                     _productCache = SampleProducts.sampleProducts
@@ -132,7 +145,7 @@ object GameLevelRepository {
                 Result.success(_productCache)
             }
         } catch (e: Exception) {
-            // 2. Si el servidor está apagado (Excepción), usamos caché local
+            // Fallback local si no hay conexión
             println("Spring Boot Caído: ${e.message}. Usando local.")
             if (_productCache.isEmpty()) {
                 _productCache = SampleProducts.sampleProducts
@@ -206,7 +219,7 @@ object GameLevelRepository {
         cartIdCounter = 0
     }
 
-    // -------------------- SIMULADOS (Reseñas/Órdenes) ------------------------
+    // -------------------- SIMULADOS ------------------------
     @Suppress("RedundantSuspendModifier", "UNUSED_PARAMETER")
     suspend fun getProductReviews(productId: Int): Result<List<Review>> =
         Result.success(emptyList())

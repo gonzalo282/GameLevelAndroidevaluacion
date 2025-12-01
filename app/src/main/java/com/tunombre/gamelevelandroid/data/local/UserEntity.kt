@@ -17,5 +17,6 @@ data class UserEntity(
     @ColumnInfo(name = "direccion") val direccion: String,
 
     // Guardamos la contraseña hasheada (no en texto plano)
-    @ColumnInfo(name = "password_hash") val passwordHash: String
+    @ColumnInfo(name = "password_hash") val passwordHash: String,
+    @ColumnInfo(name = "foto_perfil") val fotoPerfil: String? = null
 )

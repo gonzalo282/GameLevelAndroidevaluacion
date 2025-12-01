@@ -6,7 +6,9 @@ data class User(
     val email: String = "",
     val telefono: String = "",
     val direccion: String = "",
-    val token: String? = null
+    val token: String? = null,
+    // Nuevo campo: Puede ser nulo (opcional al registrarse)
+    val fotoPerfil: String? = null
 )
 
 data class LoginRequest(
